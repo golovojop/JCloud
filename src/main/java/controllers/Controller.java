@@ -1,5 +1,6 @@
 package controllers;
 
+import data.LocalStorage;
 import domain.FileWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,7 +16,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import utils.FileHelper;
+import data.file.FileHelper;
 
 import java.io.IOException;
 import java.net.URL;
@@ -40,6 +41,8 @@ public class Controller implements Initializable {
     @FXML
     private TableColumn<FileWrapper, String> colLocalSize;
 
+    private LocalStorage localStorage;
+
 
     /**
      *  TODO: Показать окно авторизации
@@ -54,7 +57,7 @@ public class Controller implements Initializable {
             lc.id = 100;
             lc.backController = this;
 
-            stage.setTitle("JavaFX Autorization");
+            stage.setTitle("CloudStore Autorization");
             stage.setScene(new Scene(root, 400, 200));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
@@ -67,7 +70,10 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         colLocalName.setCellValueFactory(new PropertyValueFactory<>("fileName"));
         colLocalSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
-        showLocalStorage();
+        localStorage = new LocalStorage(LOCAL_STORAGE);
+
+        tableLocal.setItems(localStorage.getLocalStorageModel());
+//        localStorage.showLocalStorage();
     }
 
     /**
@@ -80,7 +86,7 @@ public class Controller implements Initializable {
                 .toArray(FileWrapper[] ::new);
 
         prepareModel(localStorageModel, files);
-        tableLocal.setItems(localStorageModel);
+        tableLocal.setItems(localStorage.getLocalStorageModel());
     }
 
     /**
