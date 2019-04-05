@@ -1,8 +1,11 @@
 package data.repository.jdbc;
 
+import data.provider.JdbcProvider;
+import domain.Customer;
+
 import java.sql.*;
 
-public class JdbcRepository {
+public class JdbcRepository implements JdbcProvider {
 
     public static final String JDBC_URL = "jdbc:sqlite:customers.db";
     public static final String JDBC_CLASS = "org.sqlite.JDBC";
@@ -35,6 +38,26 @@ public class JdbcRepository {
         try {
             connection.close();
         } catch (Exception e) {e.printStackTrace();}
+    }
+
+    @Override
+    public void selectCustomer(Customer customer) {
+
+    }
+
+    @Override
+    public void createCustomer(Customer customer) {
+
+    }
+
+    @Override
+    public void updateCustomer(Customer customer) {
+
+    }
+
+    @Override
+    public void removeCustomer(Customer customer) {
+
     }
 
     // Выполнить SELECT

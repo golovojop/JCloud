@@ -6,17 +6,15 @@ import domain.Customer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class JdbcProvider {
+public interface JdbcProvider {
+    void selectCustomer(Customer customer);
+    void createCustomer(Customer customer);
+    void updateCustomer(Customer customer);
+    void removeCustomer(Customer customer);
 
-    private JdbcRepository repository;
-
-    public JdbcProvider() {
-        this.repository =  JdbcRepository.getJdbc();
-    }
-
-    public void saveCustomer(Customer customer) {
-        PreparedStatement prepStatement = null;
-
+//    {
+//        PreparedStatement prepStatement = null;
+//
 //        try {
 //            prepStatement = connection.prepareStatement(sql[0]);
 //
@@ -29,6 +27,5 @@ public class JdbcProvider {
 //            prepStatement.executeUpdate();
 //        } catch (SQLException e) {e.printStackTrace();}
 //
-
-    }
+//    }
 }
