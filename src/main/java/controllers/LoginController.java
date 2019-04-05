@@ -20,6 +20,7 @@ public class LoginController {
 
     public Controller backController;
 
+    @FXML
     public void auth(ActionEvent actionEvent) {
         System.out.println(login.getText() + " " + password.getText());
         System.out.println("id = " + id);

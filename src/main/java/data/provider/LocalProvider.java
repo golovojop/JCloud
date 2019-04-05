@@ -1,17 +1,17 @@
-package data;
+package data.provider;
 
-import data.file.FileHelper;
+import data.repository.file.FileHelper;
 import domain.FileWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-public class LocalStorage {
+public class LocalProvider {
 
     private ObservableList<FileWrapper> localStorageModel;
     private String storagePath;
 
 
-    public LocalStorage(String storagePath) {
+    public LocalProvider(String storagePath) {
         this.localStorageModel = FXCollections.observableArrayList();
         this.storagePath = storagePath;
     }

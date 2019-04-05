@@ -1,6 +1,6 @@
 package controllers;
 
-import data.LocalStorage;
+import data.provider.LocalProvider;
 import domain.FileWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +16,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import data.file.FileHelper;
+import data.repository.file.FileHelper;
 
 import java.io.IOException;
 import java.net.URL;
@@ -41,7 +41,7 @@ public class Controller implements Initializable {
     @FXML
     private TableColumn<FileWrapper, String> colLocalSize;
 
-    private LocalStorage localStorage;
+    private LocalProvider localStorage;
 
 
     /**
@@ -66,11 +66,34 @@ public class Controller implements Initializable {
         }
     }
 
+    /**
+     *  TODO: Показать окно регистрации
+     */
+    @FXML
+    public void signupPrompt(ActionEvent actionEvent) {
+        try {
+            Stage stage = new Stage();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/signup_window.fxml"));
+            Parent root = loader.load();
+            SignUpController suc = (SignUpController) loader.getController();
+            suc.id = 200;
+            suc.backController = this;
+
+            stage.setTitle("Create login");
+            stage.setScene(new Scene(root, 400, 200));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         colLocalName.setCellValueFactory(new PropertyValueFactory<>("fileName"));
         colLocalSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
-        localStorage = new LocalStorage(LOCAL_STORAGE);
+        localStorage = new LocalProvider(LOCAL_STORAGE);
 
         tableLocal.setItems(localStorage.getLocalStorageModel());
 //        localStorage.showLocalStorage();
