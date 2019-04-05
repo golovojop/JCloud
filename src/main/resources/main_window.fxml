@@ -11,8 +11,13 @@
     <padding>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
     </padding>
-    <Hyperlink text="Cloud" fx:id="hlCloud" onAction="#authPrompt" GridPane.rowIndex="0" GridPane.columnIndex="0"
-               style="-fx-font: bold 12 Tahoma; -fx-underline: false;; -fx-border-width: 0px;"/>
+
+    <HBox GridPane.rowIndex="0" GridPane.columnIndex="0">
+        <Hyperlink text="Cloud" fx:id="hlCloud" onAction="#authPrompt"
+                   style="-fx-font: bold 12 Tahoma; -fx-underline: false;; -fx-border-width: 0px;"/>
+        <Hyperlink text="SignUp" fx:id="hlSignup" onAction="#signupPrompt"
+                   style="-fx-font: bold 12 Tahoma; -fx-underline: false;; -fx-border-width: 0px;"/>
+    </HBox>
 
     <Label GridPane.rowIndex="1" GridPane.columnIndex="0" text="Локальное хранилище" style="-fx-font: bold 14 Tahoma;"
            alignment="CENTER" maxWidth="Infinity"/>
