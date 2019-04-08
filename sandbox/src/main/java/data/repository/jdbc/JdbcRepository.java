@@ -4,17 +4,15 @@ import java.sql.*;
 
 public class JdbcRepository {
 
-    public static final String JDBC_URL = "jdbc:sqlite:customers.db";
-    public static final String JDBC_CLASS = "org.sqlite.JDBC";
+    private final String JDBC_URL = "jdbc:sqlite:cloudstore.db";
+    private final String JDBC_CLASS = "org.sqlite.JDBC";
 
-    public Connection connection;
-    public Statement statement;
+    private Connection connection;
 
     private JdbcRepository() {
         try {
             Class.forName(JDBC_CLASS);
             connection = DriverManager.getConnection(JDBC_URL);
-            statement = connection.createStatement();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -22,12 +20,12 @@ public class JdbcRepository {
         }
     }
 
-    private static class JdbcRepositoryHolder {
-        public static JdbcRepository instance = new JdbcRepository();
-    }
+    public static class ConnectionHolder {
+        private static final JdbcRepository jdbc = new JdbcRepository();
 
-    public static JdbcRepository getJdbc() {
-        return JdbcRepositoryHolder.instance;
+        public static Connection getConnection() {
+            return jdbc.connection;
+        }
     }
 
     // Отключиться от базы
@@ -36,23 +34,4 @@ public class JdbcRepository {
             connection.close();
         } catch (Exception e) {e.printStackTrace();}
     }
-
-    // Выполнить SELECT
-    public synchronized ResultSet executeQuery(String sql) {
-        ResultSet rs = null;
-
-        try {
-            rs = statement.executeQuery(sql);
-        } catch (SQLException e) {e.printStackTrace();}
-
-        return rs;
-    }
-
-    // Выполнить INSERT
-    public synchronized void executeUpdate(String sql) {
-        try {
-            statement.executeUpdate(sql);
-        } catch (SQLException e) {e.printStackTrace();}
-    }
-
 }

@@ -10,7 +10,6 @@ public class LocalProvider {
     private ObservableList<FileWrapper> localStorageModel;
     private String storagePath;
 
-
     public LocalProvider(String storagePath) {
         this.localStorageModel = FXCollections.observableArrayList();
         this.storagePath = storagePath;

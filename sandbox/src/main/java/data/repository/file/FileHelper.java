@@ -27,4 +27,21 @@ public class FileHelper {
 
         return result;
     }
+
+    /**
+     * TODO: Создать каталог
+     */
+    public static boolean createDirectory(Path targetDir) {
+        boolean result = false;
+        if(!Files.exists(targetDir)) {
+            try {
+                Files.createDirectories(targetDir);
+                result = true;
+            } catch (IOException e) {e.getStackTrace();}
+
+        } else {
+            System.out.println("Directory " + targetDir.toString() + " already exists");
+        }
+        return result;
+    }
 }
