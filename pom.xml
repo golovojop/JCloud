@@ -6,7 +6,14 @@
 
     <groupId>yarlykov.s</groupId>
     <artifactId>cloud-store</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>client</module>
+        <module>server</module>
+        <module>common</module>
+        <module>sandbox</module>
+    </modules>
 
     <dependencies>
         <dependency>
