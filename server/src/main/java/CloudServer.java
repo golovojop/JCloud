@@ -8,57 +8,67 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
-public class CloudServer {
-    private static final String POISON_PILL = "POISON_PILL";
+import conversation.ClientMessage;
+import conversation.Exchanger;
+import conversation.message.ClientDir;
+import conversation.message.ServerDirResponse;
+import domain.FileWrapper;
 
-    public static void main(String[] args) throws IOException {
+public class CloudServer {
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+
         Selector selector = Selector.open();
         ServerSocketChannel serverSocket = ServerSocketChannel.open();
         serverSocket.bind(new InetSocketAddress("localhost", 15454));
         serverSocket.configureBlocking(false);
         serverSocket.register(selector, SelectionKey.OP_ACCEPT);
-        ByteBuffer buffer = ByteBuffer.allocate(256);
+        Iterator<SelectionKey> iter;
 
-        System.out.println("Server started on port 15454\n");
+        try {
+            System.out.println("Server started on port 15454\n");
 
-        while (true) {
-            selector.select();
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> iter = selectedKeys.iterator();
-            while (iter.hasNext()) {
+            while (serverSocket.isOpen()) {
+                selector.select();
 
-                SelectionKey key = iter.next();
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                iter = selectedKeys.iterator();
 
-                if (key.isAcceptable()) {
-                    register(selector, serverSocket);
+                while (iter.hasNext()) {
+
+                    SelectionKey key = iter.next();
+                    iter.remove();
+
+                    if (key.isAcceptable()) {
+                        registerClient(selector, serverSocket);
+                    }
+                    if (key.isReadable()) {
+                        handleRequest(key);
+                    }
                 }
-
-                if (key.isReadable()) {
-                    answerWithEcho(buffer, key);
-                }
-                iter.remove();
             }
-        }
+
+        } catch (IOException e) {e.printStackTrace();}
+
     }
 
-    private static void answerWithEcho(ByteBuffer buffer, SelectionKey key)
-            throws IOException {
-
+    private static void handleRequest(SelectionKey key) {
         SocketChannel client = (SocketChannel) key.channel();
-        client.read(buffer);
-        if (new String(buffer.array()).trim().equals(POISON_PILL)) {
-            client.close();
-            System.out.println("Not accepting client messages anymore");
-        }
+        ClientMessage message = (ClientMessage) Exchanger.receive(client);
 
-        buffer.flip();
-        client.write(buffer);
-        buffer.clear();
+        if(message == null) return;
+
+        switch (message.getRequest()) {
+            case DIR:
+                ClientDir dirCommand = (ClientDir) message;
+                Exchanger.send(client, new ServerDirResponse(dirCommand.getId(), new FileWrapper[]{new FileWrapper(dirCommand.getTarget(), 0)}));
+                break;
+            default:
+                System.out.println("Unknown client message");
+        }
     }
 
-    private static void register(Selector selector, ServerSocketChannel serverSocket)
-            throws IOException {
-
+    private static void registerClient(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
