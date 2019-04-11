@@ -30,36 +30,41 @@ public class Controller implements Initializable {
     private final String LOCAL_STORAGE = "local_storage";
     private final String REMOTE_STORAGE = "remote_storage";
 
-    private ObservableList<FileWrapper> localStorageModel = FXCollections.observableArrayList();
-
-
     @FXML
     Hyperlink hlCloud;
 
     @FXML
     private TableView<FileWrapper> tableLocal;
+    @FXML
+    private TableView<FileWrapper> tableCloud;
 
     @FXML
     private TableColumn<FileWrapper, String> colLocalName;
+    @FXML
+    private TableColumn<FileWrapper, String> colCloudName;
 
     @FXML
     private TableColumn<FileWrapper, String> colLocalSize;
+    @FXML
+    private TableColumn<FileWrapper, String> colCloudSize;
 
     private LocalProvider localStorage;
-    private RemoteProvider remoteProvider;
+    private RemoteProvider remoteStorage;
     private CustomerDao customerDao;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         colLocalName.setCellValueFactory(new PropertyValueFactory<>("fileName"));
         colLocalSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
+        colCloudName.setCellValueFactory(new PropertyValueFactory<>("fileName"));
+        colCloudSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
 
         // TODO: Провайдер локального хранилища
         localStorage = new LocalProvider(LOCAL_STORAGE);
-        tableLocal.setItems(localStorage.getLocalStorageModel());
+        tableLocal.setItems(localStorage.getStorageModel());
 
         // TODO: Провайдер удаленного хранилища
-        remoteProvider = new RemoteProvider(REMOTE_STORAGE);
+        remoteStorage = new RemoteProvider(REMOTE_STORAGE);
 
         // TODO: Провайдер к таблице Customer
         customerDao = (CustomerDao)(new JdbcProvider());
@@ -110,16 +115,21 @@ public class Controller implements Initializable {
     }
 
     public boolean signInCustomer(Customer customer) {
-        boolean result = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
-        System.out.println(customer.getLogin() + ": " + result);
-        return result;
+        boolean autorized = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
+
+        if(autorized) {
+            tableCloud.setItems(remoteStorage.getStorageModel());
+        }
+
+        System.out.println(customer.getLogin() + ": " + autorized);
+        return autorized;
     }
 
 
     public boolean signUpCustomer(Customer customer) {
 
         if(customerDao.insertCustomer(customer)) {
-            return remoteProvider.createDirectory(customer.getLogin());
+            return remoteStorage.createDirectory(customer.getLogin());
         } else {
             System.out.println("signUpCustomer: error");
         }
@@ -127,27 +137,4 @@ public class Controller implements Initializable {
         return false;
     }
 
-
-    /**
-     * TODO: Отобразить в таблице список локальных файлов
-     */
-//    private void showLocalStorage(){
-//        FileWrapper[] files = FileHelper.listFiles(LOCAL_STORAGE)
-//                .stream()
-//                .map(f -> new FileWrapper(f.getName(), f.length()))
-//                .toArray(FileWrapper[] ::new);
-//
-//        prepareModel(localStorageModel, files);
-//        tableLocal.setItems(localStorage.getLocalStorageModel());
-//    }
-
-    /**
-     * TODO: Подготовить содержимое таблицы
-     */
-//    private <T> void prepareModel( ObservableList<T> list, T[] elements) {
-//        list.removeAll();
-//        for (T e : elements) {
-//            list.add(e);
-//        }
-//    }
 }

@@ -14,7 +14,11 @@
             <Insets bottom="10.0"/>
         </VBox.margin>
     </TextField>
-    <PasswordField fx:id="password1" maxWidth="200" promptText="Password"/>
+    <PasswordField fx:id="password1" maxWidth="200" promptText="Password">
+        <VBox.margin>
+            <Insets bottom="10.0"/>
+        </VBox.margin>
+    </PasswordField>
     <PasswordField fx:id="password2" maxWidth="200" promptText="Password"/>
     <Button prefWidth="200" onAction="#signUp" text="Sign Up">
         <opaqueInsets>
