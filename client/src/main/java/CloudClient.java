@@ -1,3 +1,10 @@
+import conversation.ClientMessage;
+import conversation.Exchanger;
+import conversation.ServerMessage;
+import conversation.message.ClientDir;
+import conversation.message.ServerDirResponse;
+import domain.FileWrapper;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -6,56 +13,55 @@ import java.nio.channels.SocketChannel;
 public class CloudClient {
 
     private static SocketChannel client;
-    private static ByteBuffer buffer;
     private static CloudClient instance;
+    private static long messageId = 0;
 
     public static void main(String[] args) {
         CloudClient client = start();
-        System.out.println(client.sendMessage("Hello, Server !"));
+
+        // TODO: Команда "dir"
+        System.out.println(client.sendCommand(new ClientDir(messageId++, "Hello, Server !")));
         stop();
-    }
-
-    public static CloudClient start() {
-        if (instance == null)
-            instance = new CloudClient();
-
-        return instance;
-    }
-
-    public static void stop() {
-        try {
-            client.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            buffer = null;
-        }
     }
 
     private CloudClient() {
         try {
             client = SocketChannel.open(new InetSocketAddress("localhost", 15454));
-            buffer = ByteBuffer.allocate(256);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public String sendMessage(String msg) {
-        buffer = ByteBuffer.wrap(msg.getBytes());
-        String response = null;
+    private static CloudClient start() {
+        if (instance == null) {
+            instance = new CloudClient();
+        }
+        return instance;
+    }
+
+    private static void stop() {
         try {
-            client.write(buffer);
-            buffer.clear();
-            client.read(buffer);
-            response = new String(buffer.array()).trim();
-            System.out.println("response=" + response);
-            buffer.clear();
+            client.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return response;
+    }
 
+    public String sendCommand(ClientMessage command) {
+
+        Exchanger.send(client, command);
+        ServerMessage response = (ServerMessage)Exchanger.receive(client);
+
+        switch (response.getResponse()) {
+            case SDIR:
+                for(FileWrapper fw : ((ServerDirResponse)response).getFiles()) {
+                    System.out.println(String.format("File %s, size %d", fw.getFileName(), fw.getFileSize()));
+                }
+                break;
+            default:
+                System.out.println("Unknown server message");
+        }
+
+        return "OK";
     }
 }
