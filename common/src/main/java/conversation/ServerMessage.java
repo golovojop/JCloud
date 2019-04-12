@@ -3,6 +3,7 @@ package conversation;
 import java.io.Serializable;
 
 public abstract class ServerMessage implements Serializable {
+    static final long serialVersionUID = 100L;
     private ServerResponse response;
     private long id;
 

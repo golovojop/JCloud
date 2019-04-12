@@ -1,13 +1,13 @@
-package data.dao.provider;
+package data.provider;
 
 import data.repository.file.FileHelper;
-import domain.FileWrapper;
+import domain.FileDescriptor;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 public abstract class FileProvider {
 
-    protected ObservableList<FileWrapper> storageModel;
+    protected ObservableList<FileDescriptor> storageModel;
     protected String storagePath;
 
     public FileProvider(String storagePath) {
@@ -20,10 +20,10 @@ public abstract class FileProvider {
      */
     private void collectFiles(){
 
-        FileWrapper[] files = FileHelper.listFiles(storagePath)
+        FileDescriptor[] files = FileHelper.listFiles(storagePath)
                 .stream()
-                .map(f -> new FileWrapper(f.getName(), f.length()))
-                .toArray(FileWrapper[] ::new);
+                .map(f -> new FileDescriptor(f.getName(), f.length()))
+                .toArray(FileDescriptor[] ::new);
 
         prepareObservableList(storageModel, files);
     }
@@ -31,7 +31,7 @@ public abstract class FileProvider {
     /**
      * TODO: Получить контент для табличного отображения
      */
-    public ObservableList<FileWrapper> getStorageModel() {
+    public ObservableList<FileDescriptor> getStorageModel() {
         collectFiles();
         return storageModel;
     }

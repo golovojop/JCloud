@@ -1,11 +1,10 @@
-package conversation.message;
+package conversation.protocol;
 
 import conversation.ClientMessage;
 import conversation.ClientRequest;
 
-import java.io.Serializable;
-
-public class ClientDelete extends ClientMessage implements Serializable {
+public class ClientDelete extends ClientMessage {
+    static final long serialVersionUID = 101L;
     private String target;
 
     public ClientDelete(long id, String target) {

@@ -1,4 +1,4 @@
-package data.dao.provider;
+package data.provider;
 
 public class LocalProvider extends FileProvider {
 

@@ -43,27 +43,33 @@ public class Exchanger {
     public static Serializable receive(SocketChannel socket) {
 
         ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[4]);
-        ByteBuffer dataByteBuffer = null;
+        ByteBuffer dataByteBuffer;
         Serializable message = null;
+        int bytesRead, messageLength;
 
         try {
             // TODO: Прочитать длину сообщения
-            socket.read(lengthByteBuffer);
+            bytesRead = socket.read(lengthByteBuffer);
+
+            if(bytesRead == -1) {
+                System.out.println("Exchanger:receive(): Remote host " + socket.getRemoteAddress().toString() + " closed connection");
+                return null;
+            }
+
             if (lengthByteBuffer.remaining() == 0 && lengthByteBuffer.getInt(0) > 0) {
-                dataByteBuffer = ByteBuffer.allocate(lengthByteBuffer.getInt(0));
+                messageLength = lengthByteBuffer.getInt(0);
+                dataByteBuffer = ByteBuffer.allocate(messageLength);
 
                 // TODO: Прочитать все остальное сообщение
-                socket.read(dataByteBuffer);
-                if (dataByteBuffer.remaining() == 0) {
+                bytesRead = socket.read(dataByteBuffer);
+                if (dataByteBuffer.remaining() == 0 && bytesRead == messageLength) {
                     ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(dataByteBuffer.array()));
                     message = (Serializable) ois.readObject();
                 }
             }
-
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+//            System.out.println(e.getMessage());
         }
 
         return message;
