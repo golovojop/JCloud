@@ -3,7 +3,7 @@ package domain;
 import java.io.Serializable;
 
 public class Customer implements Serializable {
-    private Integer id;
+    private int id;
     private String login;
     private String pass;
 
@@ -15,13 +15,13 @@ public class Customer implements Serializable {
         this.pass = pass;
     }
 
-    public Customer(Integer id, String login, String pass) {
+    public Customer(int id, String login, String pass) {
         this.id = id;
         this.login = login;
         this.pass = pass;
     }
 
-    public Integer getId() {
+    public int getId() {
         return id;
     }
     public void setId(Integer id) {

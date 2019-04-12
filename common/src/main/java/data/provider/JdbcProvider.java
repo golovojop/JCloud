@@ -3,7 +3,7 @@
  * https://dzone.com/articles/building-simple-data-access-layer-using-jdbc
  */
 
-package data.dao.provider;
+package data.provider;
 
 import data.dao.CustomerDao;
 import data.repository.jdbc.JdbcRepository.ConnectionHolder;
