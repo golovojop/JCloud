@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
 public class UiController implements Initializable {
 
     private final String LOCAL_STORAGE = "local_storage";
-    private final String REMOTE_STORAGE = "remote_storage";
+    private final String CLOUD_STORAGE = "remote_storage";
 
     @FXML
     Hyperlink hlCloud;
@@ -62,7 +62,7 @@ public class UiController implements Initializable {
         tableLocal.setItems(localStorage.getStorageModel());
 
         // TODO: Провайдер удаленного хранилища
-        remoteStorage = new RemoteProvider(REMOTE_STORAGE);
+        remoteStorage = new RemoteProvider(CLOUD_STORAGE);
 
         // TODO: Провайдер к таблице Customer
         customerDao = (CustomerDao)(new JdbcProvider());
