@@ -4,7 +4,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import conversation.ClientMessage;
@@ -14,19 +16,20 @@ import conversation.protocol.ClientDir;
 import conversation.protocol.ServerAuthResponse;
 import conversation.protocol.ServerDirResponse;
 import data.dao.CustomerDao;
-import data.provider.LocalProvider;
+import data.provider.FileProvider;
 import data.provider.JdbcProvider;
 import domain.Customer;
 import domain.FileDescriptor;
-import domain.TestSerialization;
 
 public class CloudServer implements Runnable {
     private final String CLOUD_STORAGE = "remote_storage";
+    private Map<Integer, Customer> activeClients;
+    private CommandController controller;
 
     private ServerSocketChannel serverSocket;
     private Selector selector;
 
-    private LocalProvider localStorage;
+    private FileProvider localStorage;
     private CustomerDao customerDao;
 
     public CloudServer() throws IOException {
@@ -35,9 +38,11 @@ public class CloudServer implements Runnable {
         this.serverSocket.bind(new InetSocketAddress("localhost", 15454));
         this.serverSocket.configureBlocking(false);
         this.serverSocket.register(selector, SelectionKey.OP_ACCEPT);
+        this.activeClients = new HashMap<>();
+        this.controller = new CommandController(this);
 
         // TODO: Провайдер локального хранилища
-        localStorage = new LocalProvider(CLOUD_STORAGE);
+        localStorage = new FileProvider(CLOUD_STORAGE);
 
         // TODO: Провайдер к таблице Customer
         customerDao = new JdbcProvider();
@@ -80,27 +85,24 @@ public class CloudServer implements Runnable {
 
         if(message != null) {
             switch (message.getRequest()) {
-                case DIR:
-                    ClientDir dirCommand = (ClientDir) message;
-                    ServerDirResponse resp = new ServerDirResponse(dirCommand.getId(), new FileDescriptor[]{
-                            new FileDescriptor("File1", 10),
-                            new FileDescriptor("File2", 20),
-                            new FileDescriptor("File3", 30),
-                    });
-                    Exchanger.send(client, resp);
-                    break;
                 case AUTH:
                     ClientAuth authCommand = (ClientAuth) message;
+                    int sessionId = getSessionId(key);
                     Exchanger.send(client, new ServerAuthResponse(
                             message.getId(),
-                            authenticateClient(authCommand.getCustomer()),
-                            0));
+                            authenticateClient(authCommand.getCustomer(), sessionId),
+                            sessionId));
                     break;
+                case DIR:
+                    Exchanger.send(client, controller.commandDir((ClientDir) message));
+                    break;
+
                 default:
                     System.out.println("Unknown client message");
             }
         } else {
             try {
+                activeClients.remove(getSessionId(key));
                 client.close();
             } catch (IOException e) { e.printStackTrace(); }
         }
@@ -115,12 +117,20 @@ public class CloudServer implements Runnable {
     /**
      * TODO: Client authentication
      */
-    private boolean authenticateClient(Customer customer) {
-        boolean authenticated = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
-//        if(authenticated) {
-//            tableCloud.setItems(localStorage.getStorageModel());
-//        }
-        return authenticated;
+    private boolean authenticateClient(Customer customer, int sessionId) {
+
+        if(activeClients.get(sessionId) != null){
+            return true;
+        } else if(customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null) {
+            activeClients.put(sessionId, customer);
+            return true;
+
+        }
+        return false;
+    }
+
+    private int getSessionId(SelectionKey key) {
+        return ((SocketChannel) key.channel()).socket().hashCode();
     }
 
     public static void main(String[] args) throws IOException {
