@@ -9,15 +9,25 @@ import java.util.Set;
 
 import conversation.ClientMessage;
 import conversation.Exchanger;
+import conversation.protocol.ClientAuth;
 import conversation.protocol.ClientDir;
+import conversation.protocol.ServerAuthResponse;
 import conversation.protocol.ServerDirResponse;
+import data.dao.CustomerDao;
+import data.provider.LocalProvider;
+import data.provider.JdbcProvider;
+import domain.Customer;
 import domain.FileDescriptor;
 import domain.TestSerialization;
 
 public class CloudServer implements Runnable {
+    private final String CLOUD_STORAGE = "remote_storage";
 
     private ServerSocketChannel serverSocket;
     private Selector selector;
+
+    private LocalProvider localStorage;
+    private CustomerDao customerDao;
 
     public CloudServer() throws IOException {
         this.selector = Selector.open();
@@ -25,6 +35,12 @@ public class CloudServer implements Runnable {
         this.serverSocket.bind(new InetSocketAddress("localhost", 15454));
         this.serverSocket.configureBlocking(false);
         this.serverSocket.register(selector, SelectionKey.OP_ACCEPT);
+
+        // TODO: Провайдер локального хранилища
+        localStorage = new LocalProvider(CLOUD_STORAGE);
+
+        // TODO: Провайдер к таблице Customer
+        customerDao = new JdbcProvider();
     }
 
     @Override
@@ -57,8 +73,7 @@ public class CloudServer implements Runnable {
         } catch (IOException e) {e.printStackTrace();}
     }
 
-
-    private static void handleRequest(SelectionKey key) {
+    private void handleRequest(SelectionKey key) {
         System.out.println("handleRequest: message received");
         SocketChannel client = (SocketChannel) key.channel();
         ClientMessage message = (ClientMessage) Exchanger.receive(client);
@@ -67,16 +82,19 @@ public class CloudServer implements Runnable {
             switch (message.getRequest()) {
                 case DIR:
                     ClientDir dirCommand = (ClientDir) message;
-
-                    TestSerialization ts = new TestSerialization("hello", 1l);
-
                     ServerDirResponse resp = new ServerDirResponse(dirCommand.getId(), new FileDescriptor[]{
                             new FileDescriptor("File1", 10),
                             new FileDescriptor("File2", 20),
                             new FileDescriptor("File3", 30),
                     });
-
                     Exchanger.send(client, resp);
+                    break;
+                case AUTH:
+                    ClientAuth authCommand = (ClientAuth) message;
+                    Exchanger.send(client, new ServerAuthResponse(
+                            message.getId(),
+                            authenticateClient(authCommand.getCustomer()),
+                            0));
                     break;
                 default:
                     System.out.println("Unknown client message");
@@ -88,10 +106,21 @@ public class CloudServer implements Runnable {
         }
     }
 
-    private static void registerClient(Selector selector, ServerSocketChannel serverSocket) throws IOException {
+    private void registerClient(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
+    }
+
+    /**
+     * TODO: Client authentication
+     */
+    private boolean authenticateClient(Customer customer) {
+        boolean authenticated = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
+//        if(authenticated) {
+//            tableCloud.setItems(localStorage.getStorageModel());
+//        }
+        return authenticated;
     }
 
     public static void main(String[] args) throws IOException {
