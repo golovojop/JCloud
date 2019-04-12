@@ -38,6 +38,8 @@ public class MainController implements Initializable, MessageHandler {
     @FXML
     Hyperlink hlCloud;
     @FXML
+    private Hyperlink hlSignup;
+    @FXML
     private TableView<FileDescriptor> tableLocal;
     @FXML
     private TableView<FileDescriptor> tableCloud;
@@ -133,7 +135,9 @@ public class MainController implements Initializable, MessageHandler {
                 break;
             case SAUTH:
                 ServerAuthResponse resp = (ServerAuthResponse)response;
-                System.out.println("Authentication " + resp.isAuthResult());
+                System.out.println("Authentication " + resp.isAuthResult() + ", session ID " + resp.getSessionId());
+                hlSignup.setDisable(resp.isAuthResult());
+                hlCloud.setDisable(resp.isAuthResult());
 
                 break;
             default:
