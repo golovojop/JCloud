@@ -17,14 +17,14 @@ public class LoginController {
     @FXML
     VBox globParent;
 
-    public Controller backController;
+    public UiController backUiController;
     public int id;
 
     @FXML
     public void auth(ActionEvent actionEvent) {
         System.out.println(login.getText() + " " + password.getText());
         System.out.println("id = " + id);
-        backController.signInCustomer(new Customer(login.getText(), password.getText()));
+        backUiController.signInCustomer(new Customer(login.getText(), password.getText()));
         globParent.getScene().getWindow().hide();
     }
 }

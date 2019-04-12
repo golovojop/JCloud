@@ -6,8 +6,6 @@ import data.provider.LocalProvider;
 import data.provider.RemoteProvider;
 import domain.Customer;
 import domain.FileWrapper;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -25,7 +23,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class Controller implements Initializable {
+public class UiController implements Initializable {
 
     private final String LOCAL_STORAGE = "local_storage";
     private final String REMOTE_STORAGE = "remote_storage";
@@ -81,7 +79,7 @@ public class Controller implements Initializable {
             Parent root = loader.load();
             LoginController lc = (LoginController) loader.getController();
             lc.id = 100;
-            lc.backController = this;
+            lc.backUiController = this;
 
             stage.setTitle("CloudStore Autorization");
             stage.setScene(new Scene(root, 400, 200));
@@ -103,7 +101,7 @@ public class Controller implements Initializable {
             Parent root = loader.load();
             SignUpController suc = (SignUpController) loader.getController();
             suc.id = 200;
-            suc.backController = this;
+            suc.backUiController = this;
 
             stage.setTitle("Create login");
             stage.setScene(new Scene(root, 400, 200));
@@ -136,5 +134,4 @@ public class Controller implements Initializable {
 
         return false;
     }
-
 }

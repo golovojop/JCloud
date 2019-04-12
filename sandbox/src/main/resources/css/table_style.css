@@ -14,20 +14,21 @@
 }
 
 //Style of each column header background in the tableView
+// Colors list: https://docs.oracle.com/javafx/2/api/javafx/scene/doc-files/cssref.html
 .table-view .column-header-background{
-    -fx-background-color: linear-gradient(#131313 0.0%, #424141 100.0%);
+    -fx-background-color: cornflowerblue;
 }
 
- //Style of each column header label  in the tableView
+ //Style of each column header label in the tableView
 .table-view .column-header-background .label{
-     -fx-background-color: transparent;
+    -fx-background-color: transparent;
     -fx-font-weight:bold;
     -fx-text-fill: white;
 }
 
 //Style of each column in the tableView
 .table-view .table-column{
-    -fx-alignment:center;
+    -fx-alignment:center-left;
     -fx-font-size:12px;
 }
 
@@ -61,10 +62,10 @@
 
 //Style of each entire row in the table view when is hovered
 .table-row-cell:hover {
-    -fx-background-color:orange;
+    /* -fx-background-color:orange; */
 }
 
 //Style of each entire row in the table view when is getting focused
 .table-row-cell:focused {
-    -fx-background-color:purple;
+    /* -fx-background-color:purple; */
 }

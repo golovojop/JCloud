@@ -7,7 +7,7 @@
 <GridPane alignment="CENTER" hgap="10.0" vgap="10.0"
           xmlns:fx="http://javafx.com/fxml"
           stylesheets="css/table_style.css"
-          fx:controller="controllers.Controller">
+          fx:controller="controllers.UiController">
     <padding>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
     </padding>

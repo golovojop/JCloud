@@ -21,14 +21,14 @@ public class SignUpController {
     @FXML
     VBox globParent;
 
-    public Controller backController;
+    public UiController backUiController;
     public int id;
 
     @FXML
     public void signUp(ActionEvent actionEvent) {
 
         if(password1.getText().equals(password2.getText())) {
-            backController.signUpCustomer(new Customer(login.getText(), password1.getText()));
+            backUiController.signUpCustomer(new Customer(login.getText(), password1.getText()));
 
         } else {
             System.out.println("Passwords are not equal");
