@@ -6,9 +6,8 @@ import conversation.protocol.ClientDir;
 import conversation.protocol.ServerAuthResponse;
 import conversation.protocol.ServerDirResponse;
 import data.dao.CustomerDao;
+import data.provider.FileProvider;
 import data.provider.JdbcProvider;
-import data.provider.LocalProvider;
-import data.provider.RemoteProvider;
 import domain.Customer;
 import domain.FileDescriptor;
 import domain.TestSerialization;
@@ -51,8 +50,7 @@ public class MainController implements Initializable, MessageHandler {
     @FXML
     private TableColumn<FileDescriptor, String> colCloudSize;
 
-    private LocalProvider localStorage;
-    private RemoteProvider remoteStorage;
+    private FileProvider localStorage;
     private CustomerDao customerDao;
     private CloudClient client;
     private long messageId;
@@ -65,11 +63,8 @@ public class MainController implements Initializable, MessageHandler {
         colCloudSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
 
         // TODO: Провайдер локального хранилища
-        localStorage = new LocalProvider(LOCAL_STORAGE);
+        localStorage = new FileProvider(LOCAL_STORAGE);
         tableLocal.setItems(localStorage.getStorageModel());
-
-        // TODO: Провайдер удаленного хранилища
-        remoteStorage = new RemoteProvider(REMOTE_STORAGE);
 
         // TODO: Провайдер к таблице Customer
         customerDao = (CustomerDao)(new JdbcProvider());
@@ -172,12 +167,12 @@ public class MainController implements Initializable, MessageHandler {
      *  TODO: Подписка
      */
     public boolean signUpCustomer(Customer customer) {
-
-        if(customerDao.insertCustomer(customer)) {
-            return remoteStorage.createDirectory(customer.getLogin());
-        } else {
-            System.out.println("signUpCustomer: error");
-        }
+//
+//        if(customerDao.insertCustomer(customer)) {
+//            return remoteStorage.createDirectory(customer.getLogin());
+//        } else {
+//            System.out.println("signUpCustomer: error");
+//        }
 
         return false;
     }
