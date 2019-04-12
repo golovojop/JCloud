@@ -1,7 +1,9 @@
 package controllers;
 
 import conversation.ServerMessage;
+import conversation.protocol.ClientAuth;
 import conversation.protocol.ClientDir;
+import conversation.protocol.ServerAuthResponse;
 import conversation.protocol.ServerDirResponse;
 import data.dao.CustomerDao;
 import data.provider.JdbcProvider;
@@ -134,8 +136,12 @@ public class MainController implements Initializable, MessageHandler {
                     System.out.println(String.format("File: %s, size %d", fd.getFileName(), fd.getFileSize()));
                 }
                 break;
-            default:
+            case SAUTH:
+                ServerAuthResponse resp = (ServerAuthResponse)response;
+                System.out.println("Authentication " + resp.isAuthResult());
 
+                break;
+            default:
                 System.out.println("Unknown server message");
         }
     }
@@ -145,18 +151,26 @@ public class MainController implements Initializable, MessageHandler {
         System.out.println(String.format("File: %s, size %d", response.getText(), response.getValue()));
     }
 
+    /**
+     * TODO: Аутентификация
+     */
     public boolean signInCustomer(Customer customer) {
-        boolean autorized = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
 
-        if(autorized) {
-            tableCloud.setItems(remoteStorage.getStorageModel());
-        }
+        client.sendCommand(new ClientAuth(messageId++, customer));
+        return true;
 
-        System.out.println(customer.getLogin() + ": " + autorized);
-        return autorized;
+//        boolean autorized = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
+//        if(autorized) {
+//            tableCloud.setItems(remoteStorage.getStorageModel());
+//        }
+//        System.out.println(customer.getLogin() + ": " + autorized);
+//        return autorized;
     }
 
 
+    /**
+     *  TODO: Подписка
+     */
     public boolean signUpCustomer(Customer customer) {
 
         if(customerDao.insertCustomer(customer)) {

@@ -46,8 +46,6 @@ public class CloudClient {
         Exchanger.send(channel, command);
         ServerMessage response = (ServerMessage)Exchanger.receive(channel);
 
-//        TestSerialization response  = (TestSerialization)Exchanger.receive(channel);
-
         if(response != null) {
             handler.handleMessage(response);
         }
