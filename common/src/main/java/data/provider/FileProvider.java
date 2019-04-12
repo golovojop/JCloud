@@ -5,7 +5,7 @@ import domain.FileDescriptor;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-public abstract class FileProvider {
+public class FileProvider {
 
     protected ObservableList<FileDescriptor> storageModel;
     protected String storagePath;
