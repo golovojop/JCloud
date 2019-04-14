@@ -8,29 +8,26 @@ import domain.TestSerialization;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
-public class CloudClient {
+public class CloudClient implements Runnable {
 
     private static SocketChannel channel;
-    private static CloudClient instance;
-    private static long messageId = 0;
-    private MessageHandler handler;
+    private MainView view;
 
-    private CloudClient() {
-        try {
-            channel = SocketChannel.open(new InetSocketAddress("localhost", 15454));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public CloudClient(String hostname, int port, MainView view) throws IOException {
+        channel = SocketChannel.open(new InetSocketAddress(hostname, port));
+        this.view = view;
+
+        (new Thread(this)).start();
     }
 
-    public static CloudClient start(MessageHandler handler) {
-        if (instance == null) {
-            instance = new CloudClient();
-            instance.handler = handler;
-        }
-        return instance;
+    @Override
+    public void run() {
+        sendCommand(view.nextMessage());
     }
 
     private static void stop() {
@@ -42,12 +39,11 @@ public class CloudClient {
     }
 
     public void sendCommand(ClientMessage command) {
-
         Exchanger.send(channel, command);
-        ServerMessage response = (ServerMessage)Exchanger.receive(channel);
+        ServerMessage response = (ServerMessage) Exchanger.receive(channel);
 
-        if(response != null) {
-            handler.handleMessage(response);
+        if (response != null) {
+            view.renderResponse(response);
         }
     }
 }

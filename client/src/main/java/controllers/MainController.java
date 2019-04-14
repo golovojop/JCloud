@@ -1,16 +1,11 @@
 package controllers;
 
+import conversation.ClientMessage;
 import conversation.ServerMessage;
-import conversation.protocol.ClientAuth;
-import conversation.protocol.ClientDir;
-import conversation.protocol.ServerAuthResponse;
-import conversation.protocol.ServerDirResponse;
-import data.dao.CustomerDao;
+import conversation.protocol.*;
 import data.provider.FileProvider;
-import data.provider.JdbcProvider;
 import domain.Customer;
 import domain.FileDescriptor;
-import domain.TestSerialization;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -24,16 +19,17 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import network.CloudClient;
-import network.MessageHandler;
+import network.MainView;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
-public class MainController implements Initializable, MessageHandler {
+public class MainController implements Initializable, MainView {
 
     private final String LOCAL_STORAGE = "local_storage";
-    private final String REMOTE_STORAGE = "remote_storage";
 
     @FXML
     Hyperlink hlCloud;
@@ -53,9 +49,11 @@ public class MainController implements Initializable, MessageHandler {
     private TableColumn<FileDescriptor, String> colCloudSize;
 
     private FileProvider localStorage;
-    private CustomerDao customerDao;
     private CloudClient client;
+    private SessionId sessionId;
     private long messageId;
+    private boolean isAuthenticated;
+    private BlockingQueue<ClientMessage> queue;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -68,15 +66,20 @@ public class MainController implements Initializable, MessageHandler {
         localStorage = new FileProvider(LOCAL_STORAGE);
         tableLocal.setItems(localStorage.getStorageModel());
 
-        // TODO: Провайдер к таблице Customer
-        customerDao = (CustomerDao)(new JdbcProvider());
+        // TODO: Очередь сообщений серверу
+        queue = new LinkedBlockingQueue<>(10);
 
         // TODO: Запуск клиента
-        client = CloudClient.start(this);
+        try {
+            client = new CloudClient("localhost", 15454, this);
+        } catch (IOException e) {
+            // TODO: Нужен алерт и деактивация кнопок
+            System.out.println("Client connection error");
+        }
     }
 
     /**
-     *  TODO: Показать окно авторизации
+     * TODO: Показать окно авторизации
      */
     @FXML
     public void authPrompt(ActionEvent actionEvent) {
@@ -98,7 +101,7 @@ public class MainController implements Initializable, MessageHandler {
     }
 
     /**
-     *  TODO: Показать окно регистрации
+     * TODO: Показать окно регистрации
      */
     @FXML
     public void signupPrompt(ActionEvent actionEvent) {
@@ -121,23 +124,29 @@ public class MainController implements Initializable, MessageHandler {
 
     @FXML
     public void dirRemote(ActionEvent actionEvent) {
-        client.sendCommand(new ClientDir(messageId++, "Hello, Server !"));
+        client.sendCommand(new ClientDir(messageId++, sessionId, null));
     }
 
     @Override
-    public void handleMessage(ServerMessage response) {
-
+    public void renderResponse(ServerMessage response) {
         switch (response.getResponse()) {
             case SDIR:
-                for(FileDescriptor fd : ((ServerDirResponse)response).getFiles()) {
+                for (FileDescriptor fd : ((ServerDirResponse) response).getFiles()) {
                     System.out.println(String.format("File: %s, size %d", fd.getFileName(), fd.getFileSize()));
                 }
                 break;
             case SAUTH:
-                ServerAuthResponse resp = (ServerAuthResponse)response;
-                System.out.println("Authentication " + resp.isAuthResult() + ", session ID " + resp.getSessionId());
-                hlSignup.setDisable(resp.isAuthResult());
-                hlCloud.setDisable(resp.isAuthResult());
+                ServerAuthResponse resp = (ServerAuthResponse) response;
+                System.out.println("Authentication " + resp.isAuth() + ", session ID " + resp.getSessionId());
+                isAuthenticated = resp.isAuth();
+                sessionId = resp.getSessionId();
+
+                hlSignup.setDisable(isAuthenticated);
+                hlCloud.setDisable(isAuthenticated);
+
+                if(isAuthenticated) {
+                    putInQueue(new ClientDir(messageId++, sessionId,null));
+                }
 
                 break;
             default:
@@ -146,38 +155,33 @@ public class MainController implements Initializable, MessageHandler {
     }
 
     @Override
-    public void handleMessage(TestSerialization response) {
-        System.out.println(String.format("File: %s, size %d", response.getText(), response.getValue()));
+    public ClientMessage nextMessage() {
+        ClientMessage message = null;
+        try {
+            message = queue.take();
+        } catch (InterruptedException e) {e.printStackTrace();}
+
+        return message;
+    }
+
+    private void putInQueue(ClientMessage message) {
+        try {
+            queue.put(message);
+        } catch (InterruptedException e) {e.printStackTrace();}
+
     }
 
     /**
-     * TODO: Аутентификация
+     * TODO: Отправка логина/пароля на сервер
      */
-    public boolean signInCustomer(Customer customer) {
+    public void signInCustomer(Customer customer) {
+        putInQueue(new ClientAuth(messageId++, null, customer));
 
-        client.sendCommand(new ClientAuth(messageId++, customer));
-        return true;
-
-//        boolean autorized = customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null;
-//        if(autorized) {
-//            tableCloud.setItems(remoteStorage.getStorageModel());
-//        }
-//        System.out.println(customer.getLogin() + ": " + autorized);
-//        return autorized;
     }
 
-
     /**
-     *  TODO: Подписка
+     * TODO: Подписка
      */
-    public boolean signUpCustomer(Customer customer) {
-//
-//        if(customerDao.insertCustomer(customer)) {
-//            return remoteStorage.createDirectory(customer.getLogin());
-//        } else {
-//            System.out.println("signUpCustomer: error");
-//        }
-
-        return false;
+    public void signUpCustomer(Customer customer) {
     }
 }

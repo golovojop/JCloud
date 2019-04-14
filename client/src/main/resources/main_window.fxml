@@ -13,9 +13,9 @@
     </padding>
 
     <HBox GridPane.rowIndex="0" GridPane.columnIndex="0">
-        <Hyperlink text="Cloud" fx:id="hlCloud" onAction="#authPrompt"
+        <Hyperlink text="Вход" fx:id="hlCloud" onAction="#authPrompt"
                    style="-fx-font: bold 12 Tahoma; -fx-underline: false;; -fx-border-width: 0px;"/>
-        <Hyperlink text="SignUp" fx:id="hlSignup" onAction="#signupPrompt"
+        <Hyperlink text="Регистрация" fx:id="hlSignup" onAction="#signupPrompt"
                    style="-fx-font: bold 12 Tahoma; -fx-underline: false;; -fx-border-width: 0px;"/>
     </HBox>
 
