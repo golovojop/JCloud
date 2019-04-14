@@ -7,8 +7,8 @@ public class ClientDir extends ClientMessage {
     static final long serialVersionUID = 101L;
     private String target;
 
-    public ClientDir(long id, String target) {
-        super(id, ClientRequest.DIR);
+    public ClientDir(long id, SessionId sessionId, String target) {
+        super(id, sessionId, ClientRequest.DIR);
         this.target = target;
     }
 

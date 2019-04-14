@@ -8,8 +8,8 @@ public class ClientAuth extends ClientMessage {
     static final long serialVersionUID = 101L;
     private Customer customer;
 
-    public ClientAuth(long id, Customer customer) {
-        super(id, ClientRequest.AUTH);
+    public ClientAuth(long id, SessionId sessionId, Customer customer) {
+        super(id, sessionId, ClientRequest.AUTH);
         this.customer = customer;
     }
 

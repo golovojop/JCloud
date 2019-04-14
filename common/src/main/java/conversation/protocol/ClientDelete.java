@@ -7,8 +7,8 @@ public class ClientDelete extends ClientMessage {
     static final long serialVersionUID = 101L;
     private String target;
 
-    public ClientDelete(long id, String target) {
-        super(id, ClientRequest.DELETE);
+    public ClientDelete(long id, SessionId sessionId, String target) {
+        super(id, sessionId, ClientRequest.DELETE);
         this.target = target;
     }
 

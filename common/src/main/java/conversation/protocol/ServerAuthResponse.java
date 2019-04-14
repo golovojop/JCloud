@@ -6,20 +6,20 @@ import conversation.ServerResponse;
 public class ServerAuthResponse extends ServerMessage {
     static final long serialVersionUID = 101L;
 
-    private boolean authResult;
-    private long sessionId;
+    private boolean isAuth;
+    private SessionId sessionId;
 
-    public ServerAuthResponse(long id, boolean authResult, long sessionId) {
+    public ServerAuthResponse(long id, boolean isAuth, SessionId sessionId) {
         super(id, ServerResponse.SAUTH);
-        this.authResult = authResult;
+        this.isAuth = isAuth;
         this.sessionId = sessionId;
     }
 
-    public boolean isAuthResult() {
-        return authResult;
+    public boolean isAuth() {
+        return isAuth;
     }
 
-    public long getSessionId() {
+    public SessionId getSessionId() {
         return sessionId;
     }
 }
