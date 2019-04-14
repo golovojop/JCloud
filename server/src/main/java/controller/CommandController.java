@@ -1,6 +1,9 @@
+package controller;
+
 import conversation.protocol.ClientDir;
 import conversation.protocol.ServerDirResponse;
 import domain.FileDescriptor;
+import server.CloudServer;
 
 public class CommandController {
 

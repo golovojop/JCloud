@@ -1,3 +1,5 @@
+package server;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -9,21 +11,23 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import controller.CommandController;
 import conversation.ClientMessage;
+import conversation.ClientRequest;
 import conversation.Exchanger;
 import conversation.protocol.ClientAuth;
 import conversation.protocol.ClientDir;
 import conversation.protocol.ServerAuthResponse;
-import conversation.protocol.ServerDirResponse;
+import conversation.protocol.SessionId;
 import data.dao.CustomerDao;
 import data.provider.FileProvider;
 import data.provider.JdbcProvider;
 import domain.Customer;
-import domain.FileDescriptor;
+import domain.Session;
 
 public class CloudServer implements Runnable {
     private final String CLOUD_STORAGE = "remote_storage";
-    private Map<Integer, Customer> activeClients;
+    private Map<SessionId, Session> activeClients;
     private CommandController controller;
 
     private ServerSocketChannel serverSocket;
@@ -67,7 +71,7 @@ public class CloudServer implements Runnable {
                     iter.remove();
 
                     if (key.isAcceptable()) {
-                        registerClient(selector, serverSocket);
+                        registerConnect(selector, serverSocket);
                     }
                     if (key.isReadable()) {
                         handleRequest(key);
@@ -78,8 +82,15 @@ public class CloudServer implements Runnable {
         } catch (IOException e) {e.printStackTrace();}
     }
 
+    private void registerConnect(Selector selector, ServerSocketChannel serverSocket) throws IOException {
+        SocketChannel client = serverSocket.accept();
+        client.configureBlocking(false);
+        client.register(selector, SelectionKey.OP_READ);
+    }
+
     private void handleRequest(SelectionKey key) {
         System.out.println("handleRequest: message received");
+
         SocketChannel client = (SocketChannel) key.channel();
         ClientMessage message = (ClientMessage) Exchanger.receive(client);
 
@@ -87,7 +98,7 @@ public class CloudServer implements Runnable {
             switch (message.getRequest()) {
                 case AUTH:
                     ClientAuth authCommand = (ClientAuth) message;
-                    int sessionId = getSessionId(key);
+                    SessionId sessionId = createSessionId(key);
                     Exchanger.send(client, new ServerAuthResponse(
                             message.getId(),
                             authenticateClient(authCommand.getCustomer(), sessionId),
@@ -102,46 +113,40 @@ public class CloudServer implements Runnable {
             }
         } else {
             try {
-                activeClients.remove(getSessionId(key));
+                activeClients.remove(createSessionId(key));
                 client.close();
             } catch (IOException e) { e.printStackTrace(); }
         }
     }
 
-    private void registerClient(Selector selector, ServerSocketChannel serverSocket) throws IOException {
-        SocketChannel client = serverSocket.accept();
-        client.configureBlocking(false);
-        client.register(selector, SelectionKey.OP_READ);
-    }
+
 
     /**
      * TODO: Client authentication
      */
-    private boolean authenticateClient(Customer customer, int sessionId) {
+    private boolean authenticateClient(Customer customer, SessionId sessionId) {
 
-        if(activeClients.get(sessionId) != null){
+        if(isAuthenticated(sessionId)){
             return true;
         } else if(customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null) {
-            activeClients.put(sessionId, customer);
+            activeClients.put(sessionId, new Session(sessionId, customer, customer.getLogin()));
             return true;
 
         }
         return false;
     }
 
-    private int getSessionId(SelectionKey key) {
-        return ((SocketChannel) key.channel()).socket().hashCode();
+    /**
+     * TODO:
+     */
+    private boolean isAuthenticated(SessionId sessionId) {
+        return activeClients.get(sessionId) != null;
     }
 
-    public static void main(String[] args) throws IOException {
-        Thread server = new Thread(new CloudServer());
-        server.start();
-
-        try {
-            server.join();
-        } catch (InterruptedException e) {
-            System.out.println("Server stopped");
-        }
+    /**
+     * TODO:
+     */
+    private SessionId createSessionId(SelectionKey key) {
+        return new SessionId(((SocketChannel) key.channel()).socket().getRemoteSocketAddress().hashCode());
     }
-
 }
