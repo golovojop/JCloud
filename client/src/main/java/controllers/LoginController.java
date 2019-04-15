@@ -1,6 +1,7 @@
 package controllers;
 
 import domain.Customer;
+import static utils.Debug.*;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.PasswordField;
@@ -18,12 +19,10 @@ public class LoginController {
     VBox globParent;
 
     public MainController backController;
-    public int id;
 
     @FXML
     public void auth(ActionEvent actionEvent) {
-        System.out.println(login.getText() + " " + password.getText());
-        System.out.println("id = " + id);
+        dp(this, "auth " + login.getText() + ":" + password.getText());
         backController.signInCustomer(new Customer(login.getText(), password.getText()));
         globParent.getScene().getWindow().hide();
     }

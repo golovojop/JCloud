@@ -6,6 +6,7 @@ import conversation.protocol.*;
 import data.provider.FileProvider;
 import domain.Customer;
 import domain.FileDescriptor;
+import static utils.Debug.*;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -48,7 +49,7 @@ public class MainController implements Initializable, MainView {
     @FXML
     private TableColumn<FileDescriptor, String> colCloudSize;
 
-    private FileProvider localStorage;
+    private FileProvider fileProvider;
     private CloudClient client;
     private SessionId sessionId;
     private long messageId;
@@ -63,8 +64,8 @@ public class MainController implements Initializable, MainView {
         colCloudSize.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
 
         // TODO: Провайдер локального хранилища
-        localStorage = new FileProvider(LOCAL_STORAGE);
-        tableLocal.setItems(localStorage.getStorageModel());
+        fileProvider = new FileProvider();
+        tableLocal.setItems(fileProvider.getStorageModel(LOCAL_STORAGE));
 
         // TODO: Очередь сообщений серверу
         queue = new LinkedBlockingQueue<>(10);
@@ -82,16 +83,15 @@ public class MainController implements Initializable, MainView {
      * TODO: Показать окно авторизации
      */
     @FXML
-    public void authPrompt(ActionEvent actionEvent) {
+    public void signinPrompt(ActionEvent actionEvent) {
         try {
             Stage stage = new Stage();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/login_window.fxml"));
             Parent root = loader.load();
             LoginController lc = (LoginController) loader.getController();
-            lc.id = 100;
             lc.backController = this;
 
-            stage.setTitle("CloudStore Autorization");
+            stage.setTitle("CloudStore Authentication");
             stage.setScene(new Scene(root, 400, 200));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
@@ -131,31 +131,27 @@ public class MainController implements Initializable, MainView {
     public void renderResponse(ServerMessage response) {
         switch (response.getResponse()) {
             case SDIR:
-                for (FileDescriptor fd : ((ServerDirResponse) response).getFiles()) {
-                    System.out.println(String.format("File: %s, size %d", fd.getFileName(), fd.getFileSize()));
-                }
+                tableCloud.setItems(fileProvider.getStorageModel(((ServerDirResponse) response).getFiles()));
                 break;
             case SAUTH:
                 ServerAuthResponse resp = (ServerAuthResponse) response;
-                System.out.println("Authentication " + resp.isAuth() + ", session ID " + resp.getSessionId());
                 isAuthenticated = resp.isAuth();
                 sessionId = resp.getSessionId();
 
                 hlSignup.setDisable(isAuthenticated);
                 hlCloud.setDisable(isAuthenticated);
-
+//                dp(this, "renderResponse, Authentication " + isAuthenticated + ", session ID " + sessionId);
                 if(isAuthenticated) {
                     putInQueue(new ClientDir(messageId++, sessionId,null));
                 }
-
                 break;
             default:
-                System.out.println("Unknown server message");
+                dp(this, "Unknown server message");
         }
     }
 
     @Override
-    public ClientMessage nextMessage() {
+    public ClientMessage dequeueMessage() {
         ClientMessage message = null;
         try {
             message = queue.take();
@@ -164,23 +160,26 @@ public class MainController implements Initializable, MainView {
         return message;
     }
 
+    /**
+     * TODO: Поместить сообщение в очередь отправки
+     */
     private void putInQueue(ClientMessage message) {
+//        dp(this, "putInQueue, message: " + message);
         try {
             queue.put(message);
         } catch (InterruptedException e) {e.printStackTrace();}
-
     }
 
     /**
      * TODO: Отправка логина/пароля на сервер
      */
     public void signInCustomer(Customer customer) {
+        dp(this, "signInCustomer. Put message into the queue");
         putInQueue(new ClientAuth(messageId++, null, customer));
-
     }
 
     /**
-     * TODO: Подписка
+     * TODO: Регистрация
      */
     public void signUpCustomer(Customer customer) {
     }

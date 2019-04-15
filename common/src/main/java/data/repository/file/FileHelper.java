@@ -29,6 +29,23 @@ public class FileHelper {
     }
 
     /**
+     * TODO: Получить список файлов в папке path
+     */
+    public static List<File> listFiles(Path path) {
+        List<File> result = null;
+
+        try (Stream<Path> walk = Files.walk(path)) {
+            result = walk.filter(Files::isRegularFile)
+                    .map(p -> p.toFile())
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    /**
      * TODO: Создать каталог
      */
     public static boolean createDirectory(Path targetDir) {

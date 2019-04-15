@@ -13,4 +13,16 @@ public class Session {
         this.customer = customer;
         this.dir = dir;
     }
+
+    public SessionId getSessionId() {
+        return sessionId;
+    }
+
+    public Customer getCustomer() {
+        return customer;
+    }
+
+    public String getDir() {
+        return dir;
+    }
 }

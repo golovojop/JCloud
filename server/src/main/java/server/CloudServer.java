@@ -13,12 +13,14 @@ import java.util.Set;
 
 import controller.CommandController;
 import conversation.ClientMessage;
-import conversation.ClientRequest;
 import conversation.Exchanger;
 import conversation.protocol.ClientAuth;
 import conversation.protocol.ClientDir;
 import conversation.protocol.ServerAuthResponse;
 import conversation.protocol.SessionId;
+
+import static utils.Debug.*;
+
 import data.dao.CustomerDao;
 import data.provider.FileProvider;
 import data.provider.JdbcProvider;
@@ -33,7 +35,7 @@ public class CloudServer implements Runnable {
     private ServerSocketChannel serverSocket;
     private Selector selector;
 
-    private FileProvider localStorage;
+    private FileProvider fileProvider;
     private CustomerDao customerDao;
 
     public CloudServer() throws IOException {
@@ -43,13 +45,14 @@ public class CloudServer implements Runnable {
         this.serverSocket.configureBlocking(false);
         this.serverSocket.register(selector, SelectionKey.OP_ACCEPT);
         this.activeClients = new HashMap<>();
-        this.controller = new CommandController(this);
 
         // TODO: Провайдер локального хранилища
-        localStorage = new FileProvider(CLOUD_STORAGE);
+        fileProvider = new FileProvider();
 
         // TODO: Провайдер к таблице Customer
         customerDao = new JdbcProvider();
+
+        this.controller = new CommandController(this, fileProvider, CLOUD_STORAGE);
     }
 
     @Override
@@ -79,22 +82,28 @@ public class CloudServer implements Runnable {
                 }
             }
 
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    /**
+     * TODO: Новый сетевой коннект регистрируем в селекторе
+     */
     private void registerConnect(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
     }
 
+    /**
+     * TODO: Прием сообщений от клиентов
+     */
     private void handleRequest(SelectionKey key) {
-        System.out.println("handleRequest: message received");
-
         SocketChannel client = (SocketChannel) key.channel();
         ClientMessage message = (ClientMessage) Exchanger.receive(client);
 
-        if(message != null) {
+        if (message != null) {
             switch (message.getRequest()) {
                 case AUTH:
                     ClientAuth authCommand = (ClientAuth) message;
@@ -105,33 +114,36 @@ public class CloudServer implements Runnable {
                             sessionId));
                     break;
                 case DIR:
-                    Exchanger.send(client, controller.commandDir((ClientDir) message));
+//                    dp(this, "handleRequest:DIR. sessionID = " + message.getSessionId());
+//                    dp(this, "handleRequest:DIR. session = " + activeClients.get(message.getSessionId()));
+                    Session session = activeClients.get(message.getSessionId());
+                    Exchanger.send(client, controller.commandDir((ClientDir) message, session));
                     break;
-
                 default:
-                    System.out.println("Unknown client message");
+                    dp(this, "Unknown client message");
             }
         } else {
             try {
                 activeClients.remove(createSessionId(key));
                 client.close();
-            } catch (IOException e) { e.printStackTrace(); }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
-
-
 
     /**
      * TODO: Client authentication
      */
     private boolean authenticateClient(Customer customer, SessionId sessionId) {
 
-        if(isAuthenticated(sessionId)){
+        if (isAuthenticated(sessionId)) {
+//            dp(this, "authenticateClient[1]. " + activeClients.get(sessionId).getSessionId());
             return true;
-        } else if(customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null) {
+        } else if (customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null) {
             activeClients.put(sessionId, new Session(sessionId, customer, customer.getLogin()));
+//            dp(this, "authenticateClient[2]. " + activeClients.get(sessionId).getSessionId());
             return true;
-
         }
         return false;
     }
@@ -147,6 +159,7 @@ public class CloudServer implements Runnable {
      * TODO:
      */
     private SessionId createSessionId(SelectionKey key) {
+//        dp(this, "createSessionId. id = " + ((SocketChannel) key.channel()).socket().getRemoteSocketAddress().hashCode());
         return new SessionId(((SocketChannel) key.channel()).socket().getRemoteSocketAddress().hashCode());
     }
 }

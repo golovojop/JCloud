@@ -69,7 +69,6 @@ public class Exchanger {
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-//            System.out.println(e.getMessage());
         }
 
         return message;
