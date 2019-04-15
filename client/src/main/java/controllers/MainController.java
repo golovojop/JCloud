@@ -6,7 +6,9 @@ import conversation.protocol.*;
 import data.provider.FileProvider;
 import domain.Customer;
 import domain.FileDescriptor;
+
 import static utils.Debug.*;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -49,12 +51,12 @@ public class MainController implements Initializable, MainView {
     @FXML
     private TableColumn<FileDescriptor, String> colCloudSize;
 
+    private BlockingQueue<ClientMessage> queue;
     private FileProvider fileProvider;
     private CloudClient client;
     private SessionId sessionId;
-    private long messageId;
     private boolean isAuthenticated;
-    private BlockingQueue<ClientMessage> queue;
+    private long messageId;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -127,23 +129,33 @@ public class MainController implements Initializable, MainView {
         client.sendCommand(new ClientDir(messageId++, sessionId, null));
     }
 
+    /**
+     * TODO: Отобразить ответ сервера
+     */
     @Override
     public void renderResponse(ServerMessage response) {
         switch (response.getResponse()) {
             case SDIR:
-                tableCloud.setItems(fileProvider.getStorageModel(((ServerDirResponse) response).getFiles()));
+                FileDescriptor[] fd = ((ServerDirResponse) response).getFiles();
+                if(fd.length != 0) {
+                    tableCloud.setItems(fileProvider.getStorageModel(fd));
+                }
                 break;
             case SAUTH:
-                ServerAuthResponse resp = (ServerAuthResponse) response;
-                isAuthenticated = resp.isAuth();
-                sessionId = resp.getSessionId();
+                ServerAuthResponse respAuth = (ServerAuthResponse) response;
+                isAuthenticated = respAuth.isAuth();
+                sessionId = respAuth.getSessionId();
 
                 hlSignup.setDisable(isAuthenticated);
                 hlCloud.setDisable(isAuthenticated);
 //                dp(this, "renderResponse, Authentication " + isAuthenticated + ", session ID " + sessionId);
-                if(isAuthenticated) {
-                    putInQueue(new ClientDir(messageId++, sessionId,null));
+                if (isAuthenticated) {
+                    putInQueue(new ClientDir(messageId++, sessionId, null));
                 }
+                break;
+            case SSIGNUP:
+                ServerSignupResponse respSignup = (ServerSignupResponse) response;
+                hlSignup.setDisable(respSignup.isStatus());
                 break;
             default:
                 dp(this, "Unknown server message");
@@ -155,7 +167,9 @@ public class MainController implements Initializable, MainView {
         ClientMessage message = null;
         try {
             message = queue.take();
-        } catch (InterruptedException e) {e.printStackTrace();}
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         return message;
     }
@@ -164,17 +178,17 @@ public class MainController implements Initializable, MainView {
      * TODO: Поместить сообщение в очередь отправки
      */
     private void putInQueue(ClientMessage message) {
-//        dp(this, "putInQueue, message: " + message);
         try {
             queue.put(message);
-        } catch (InterruptedException e) {e.printStackTrace();}
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * TODO: Отправка логина/пароля на сервер
      */
     public void signInCustomer(Customer customer) {
-        dp(this, "signInCustomer. Put message into the queue");
         putInQueue(new ClientAuth(messageId++, null, customer));
     }
 
@@ -182,5 +196,6 @@ public class MainController implements Initializable, MainView {
      * TODO: Регистрация
      */
     public void signUpCustomer(Customer customer) {
+        putInQueue(new ClientSignup(messageId++, customer));
     }
 }

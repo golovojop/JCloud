@@ -2,6 +2,7 @@ package controller;
 
 import conversation.protocol.ClientDir;
 import conversation.protocol.ServerDirResponse;
+import conversation.protocol.ServerSignupResponse;
 import data.provider.FileProvider;
 import domain.FileDescriptor;
 import domain.Session;
@@ -23,7 +24,10 @@ public class CommandController {
 
     public ServerDirResponse commandDir(ClientDir request, Session session){
         String path = request.getTarget() != null ? request.getTarget() : session.getDir();
+        FileDescriptor[] fd = fileProvider.collectFiles(Paths.get(storageRoot, path));
+
         ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(Paths.get(storageRoot, path)));
         return response;
     }
+
 }

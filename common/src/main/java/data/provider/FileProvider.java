@@ -48,6 +48,13 @@ public class FileProvider {
     }
 
     /**
+     * TODO: Создать каталог
+     */
+    public boolean createDirectory(Path targetDir) {
+        return FileHelper.createDirectory(targetDir);
+    }
+
+    /**
      * TODO: Cодержимое строк таблицы
      */
     public static <T> void prepareObservableList(ObservableList<T> list, T[] elements) {

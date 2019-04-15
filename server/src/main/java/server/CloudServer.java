@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,10 +15,7 @@ import java.util.Set;
 import controller.CommandController;
 import conversation.ClientMessage;
 import conversation.Exchanger;
-import conversation.protocol.ClientAuth;
-import conversation.protocol.ClientDir;
-import conversation.protocol.ServerAuthResponse;
-import conversation.protocol.SessionId;
+import conversation.protocol.*;
 
 import static utils.Debug.*;
 
@@ -119,6 +117,10 @@ public class CloudServer implements Runnable {
                     Session session = activeClients.get(message.getSessionId());
                     Exchanger.send(client, controller.commandDir((ClientDir) message, session));
                     break;
+                case SIGNUP:
+                    ClientSignup cs = (ClientSignup) message;
+                    Exchanger.send(client, new ServerSignupResponse(message.getId(), signupClient(cs.getCustomer(), createSessionId(key))));
+                    break;
                 default:
                     dp(this, "Unknown client message");
             }
@@ -146,6 +148,20 @@ public class CloudServer implements Runnable {
             return true;
         }
         return false;
+    }
+
+    /**
+     * TODO: Создать учетную запись и домашний каталог клиента
+     */
+    private boolean signupClient(Customer customer, SessionId sessionId) {
+        boolean result = false;
+
+        if(activeClients.get(sessionId) == null) {
+            if(customerDao.insertCustomer(customer)) {
+                return fileProvider.createDirectory(Paths.get(CLOUD_STORAGE, customer.getLogin()));
+            }
+        }
+        return result;
     }
 
     /**

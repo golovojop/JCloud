@@ -29,7 +29,6 @@ public class SignUpController {
 
         if(password1.getText().equals(password2.getText())) {
             backController.signUpCustomer(new Customer(login.getText(), password1.getText()));
-
         } else {
             System.out.println("Passwords are not equal");
         }
