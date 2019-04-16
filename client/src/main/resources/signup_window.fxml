@@ -20,7 +20,7 @@
         </VBox.margin>
     </PasswordField>
     <PasswordField fx:id="password2" maxWidth="200" promptText="Repeat password"/>
-    <Button prefWidth="200" onAction="#signUp" text="Sign Up">
+    <Button prefWidth="200" onAction="#signUp" text="Отправить">
         <opaqueInsets>
             <Insets/>
         </opaqueInsets>

@@ -66,7 +66,7 @@ public class MainController implements Initializable, MainView {
 
         // TODO: Провайдер локального хранилища
         fileProvider = new FileProvider();
-        tableLocal.setItems(fileProvider.getStorageModel(LOCAL_STORAGE));
+        dirLocal(null);
 
         // TODO: Очередь сообщений серверу
         queue = new LinkedBlockingQueue<>(10);
@@ -92,7 +92,7 @@ public class MainController implements Initializable, MainView {
             LoginController lc = (LoginController) loader.getController();
             lc.backController = this;
 
-            stage.setTitle("CloudStore Authentication");
+            stage.setTitle("Авторизация");
             stage.setScene(new Scene(root, 400, 200));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
@@ -114,13 +114,18 @@ public class MainController implements Initializable, MainView {
             suc.id = 200;
             suc.backController = this;
 
-            stage.setTitle("Create login");
+            stage.setTitle("Регистрация");
             stage.setScene(new Scene(root, 400, 200));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @FXML
+    public void dirLocal(ActionEvent actionEvent) {
+        tableLocal.setItems(fileProvider.getStorageModel(LOCAL_STORAGE));
     }
 
     @FXML

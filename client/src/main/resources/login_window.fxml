@@ -15,7 +15,7 @@
         </VBox.margin>
     </TextField>
     <PasswordField fx:id="password" maxWidth="200" promptText="Password"/>
-    <Button prefWidth="200" onAction="#auth" text="Authorization">
+    <Button prefWidth="200" onAction="#auth" text="Вход">
         <opaqueInsets>
             <Insets/>
         </opaqueInsets>

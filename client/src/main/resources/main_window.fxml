@@ -40,7 +40,7 @@
 
     <HBox fx:id="controlLocal" GridPane.rowIndex="3" GridPane.columnIndex="0" alignment="CENTER">
         <Button text="Отправить" fx:id="btnSendLocal" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-        <Button text="Обновить" fx:id="btnUpdateLocal" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button text="Обновить" fx:id="btnUpdateLocal" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#dirLocal"/>
         <Button text="Удалить" fx:id="btnRemoveLocal" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
     <HBox fx:id="controlCloud" GridPane.rowIndex="3" GridPane.columnIndex="1" alignment="CENTER">
