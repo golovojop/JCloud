@@ -188,8 +188,7 @@ public class CloudServer implements Runnable {
      * TODO: Ограничения на регистрацию:
      * TODO:    - клиент не должен быть аутентифицирован (sessionId == null),
      * TODO:    - в базе все логины уникальны
-     * TODO:    -
-     * new ServerSignupResponse(message.getId(), signupClient(cs.getCustomer(), createSessionId(key)))
+     * TODO:    - ??
      */
     private ServerSignupResponse signupClient(long messageId, Customer customer, SessionId sessionId) {
 
