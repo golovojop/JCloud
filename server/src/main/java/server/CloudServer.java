@@ -111,18 +111,12 @@ public class CloudServer implements Runnable {
                             authenticateClient(authCommand.getCustomer(), sessionId),
                             sessionId));
                     break;
-                case DIR:
-//                    dp(this, "handleRequest:DIR. sessionID = " + message.getSessionId());
-//                    dp(this, "handleRequest:DIR. session = " + activeClients.get(message.getSessionId()));
-                    Session session = activeClients.get(message.getSessionId());
-                    Exchanger.send(client, controller.commandDir((ClientDir) message, session));
-                    break;
                 case SIGNUP:
                     ClientSignup cs = (ClientSignup) message;
-                    Exchanger.send(client, new ServerSignupResponse(message.getId(), signupClient(cs.getCustomer(), createSessionId(key))));
+                    Exchanger.send(client, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
                     break;
                 default:
-                    dp(this, "Unknown client message");
+                    commandProcessor(client, message);
             }
         } else {
             try {
@@ -132,6 +126,32 @@ public class CloudServer implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * TODO: Взаимодействие с клиентом
+     */
+    private void commandProcessor(SocketChannel client, ClientMessage message) {
+
+        Session session = activeClients.get(message.getSessionId());
+
+        if(session == null) {
+            Exchanger.send(client, new ServerAlertResponse(message.getId(), "You should authenticate first"));
+            return;
+        }
+
+        switch (message.getRequest()) {
+            case DIR:
+                Exchanger.send(client, controller.commandDir((ClientDir) message, session));
+                break;
+            case BYE:
+                activeClients.remove(message.getSessionId());
+                dp(this, String.format("Client terminated with message:'%s'", ((ClientBye)message).getMessage()));
+                break;
+            default:
+                dp(this, "Unknown client message");
+        }
+
     }
 
     /**
@@ -153,15 +173,32 @@ public class CloudServer implements Runnable {
     /**
      * TODO: Создать учетную запись и домашний каталог клиента
      */
-    private boolean signupClient(Customer customer, SessionId sessionId) {
-        boolean result = false;
+//    private boolean signupClient(Customer customer, SessionId sessionId) {
+//        boolean result = false;
+//
+//        if (activeClients.get(sessionId) == null) {
+//            if (customerDao.insertCustomer(customer)) {
+//                return fileProvider.createDirectory(Paths.get(CLOUD_STORAGE, customer.getLogin()));
+//            }
+//        }
+//        return result;
+//    }
 
-        if(activeClients.get(sessionId) == null) {
-            if(customerDao.insertCustomer(customer)) {
-                return fileProvider.createDirectory(Paths.get(CLOUD_STORAGE, customer.getLogin()));
-            }
+    /**
+     * TODO: Ограничения на регистрацию:
+     * TODO:    - клиент не должен быть аутентифицирован (sessionId == null),
+     * TODO:    - в базе все логины уникальны
+     * TODO:    -
+     * new ServerSignupResponse(message.getId(), signupClient(cs.getCustomer(), createSessionId(key)))
+     */
+    private ServerSignupResponse signupClient(long messageId, Customer customer, SessionId sessionId) {
+
+        if (activeClients.get(sessionId) == null
+                && customerDao.insertCustomer(customer)
+                && fileProvider.createDirectory(Paths.get(CLOUD_STORAGE, customer.getLogin()))) {
+            return new ServerSignupResponse(messageId, true, "ok");
         }
-        return result;
+        return new ServerSignupResponse(messageId, false, "Try again with another login");
     }
 
     /**
@@ -175,7 +212,6 @@ public class CloudServer implements Runnable {
      * TODO:
      */
     private SessionId createSessionId(SelectionKey key) {
-//        dp(this, "createSessionId. id = " + ((SocketChannel) key.channel()).socket().getRemoteSocketAddress().hashCode());
         return new SessionId(((SocketChannel) key.channel()).socket().getRemoteSocketAddress().hashCode());
     }
 }

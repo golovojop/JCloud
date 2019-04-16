@@ -15,9 +15,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Hyperlink;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -26,6 +24,7 @@ import network.MainView;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -126,7 +125,7 @@ public class MainController implements Initializable, MainView {
 
     @FXML
     public void dirRemote(ActionEvent actionEvent) {
-        client.sendCommand(new ClientDir(messageId++, sessionId, null));
+        client.handleCommand(new ClientDir(messageId++, sessionId, null));
     }
 
     /**
@@ -148,14 +147,24 @@ public class MainController implements Initializable, MainView {
 
                 hlSignup.setDisable(isAuthenticated);
                 hlCloud.setDisable(isAuthenticated);
-//                dp(this, "renderResponse, Authentication " + isAuthenticated + ", session ID " + sessionId);
+
+                // TODO: Если аутентифицированы, то запросить список файлов
+                // TODO: Иначе вывести алерт об ошибке
                 if (isAuthenticated) {
                     putInQueue(new ClientDir(messageId++, sessionId, null));
+                } else {
+                    showAlert("Incorrect password or login\nTry again");
                 }
                 break;
             case SSIGNUP:
                 ServerSignupResponse respSignup = (ServerSignupResponse) response;
+                if(!respSignup.isStatus()) {
+                    showAlert(respSignup.getMessage());
+                }
                 hlSignup.setDisable(respSignup.isStatus());
+                break;
+            case SALERT:
+                showAlert(((ServerAlertResponse) response).getMessage());
                 break;
             default:
                 dp(this, "Unknown server message");
@@ -197,5 +206,18 @@ public class MainController implements Initializable, MainView {
      */
     public void signUpCustomer(Customer customer) {
         putInQueue(new ClientSignup(messageId++, customer));
+    }
+
+    /**
+     * TODO: Остановка потока обработки сетевых сообщений.
+     */
+    public void stop() {
+        putInQueue(new ClientBye(messageId++, sessionId, "Bye"));
+    }
+
+    // TODO: Сообщение об ошибке
+    private void showAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, message, ButtonType.CLOSE);
+        alert.showAndWait();
     }
 }

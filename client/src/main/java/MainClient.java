@@ -13,6 +13,7 @@
  */
 
 
+import controllers.MainController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -21,12 +22,23 @@ import javafx.stage.Stage;
 
 public class MainClient extends Application {
 
+    MainController mainController;
+
     @Override
     public void start(Stage primaryStage) throws Exception{
-        Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("main_window.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getClassLoader().getResource("main_window.fxml"));
+        Parent root = fxmlLoader.load();
+        mainController = fxmlLoader.getController();
         primaryStage.setTitle("GUI Pattern");
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.show();
+    }
+
+    @Override
+    public void stop(){
+        if(mainController != null) {
+            mainController.stop();
+        }
     }
 
     public static void main(String[] args) {

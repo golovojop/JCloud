@@ -8,6 +8,7 @@ package data.provider;
 import data.dao.CustomerDao;
 import data.repository.jdbc.JdbcRepository.ConnectionHolder;
 import domain.Customer;
+import static utils.Debug.*;
 
 import java.sql.*;
 import java.util.Set;
@@ -80,7 +81,7 @@ public class JdbcProvider implements CustomerDao {
     @Override
     public boolean insertCustomer(Customer customer) {
         if(exists(customer)) {
-            System.out.println("Customer " + customer.getLogin() + " already exists");
+            dp(this, "insertCustomer. Customer " + customer.getLogin() + " already exists");
             return false;
         }
 

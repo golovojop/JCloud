@@ -1,6 +1,7 @@
 package network;
 
 import conversation.ClientMessage;
+import conversation.ClientRequest;
 import conversation.Exchanger;
 import conversation.ServerMessage;
 import javafx.application.Platform;
@@ -23,15 +24,25 @@ public class CloudClient implements Runnable {
         this.isRunning = new AtomicBoolean();
         this.isRunning.set(true);
         this.view = view;
-
-        (new Thread(this)).start();
+        new Thread(this).start();
     }
 
     @Override
     public void run() {
-        while (isRunning.get()) {
-            sendCommand(view.dequeueMessage());
-        }
+
+        do {
+            ClientMessage message = view.dequeueMessage();
+
+            if (message.getRequest() == ClientRequest.BYE) {
+                isRunning.compareAndSet(true, false);
+                // TODO: Известить сервер, если сессия валидна
+                if(message.getSessionId() != null) {
+                    Exchanger.send(channel, message);
+                }
+            } else {
+                handleCommand(message);
+            }
+        } while (isRunning.get());
 
         try {
             channel.close();
@@ -40,16 +51,12 @@ public class CloudClient implements Runnable {
         }
     }
 
-    public void stop() {
-        isRunning.compareAndSet(true, false);
-    }
-
-    public void sendCommand(ClientMessage command) {
+    public void handleCommand(ClientMessage command) {
         Exchanger.send(channel, command);
         ServerMessage response = (ServerMessage) Exchanger.receive(channel);
 
         // TODO: Отобразить результат в потоке основного окна
-        if (response != null) {
+        if (response != null && isRunning.get()) {
             Platform.runLater(() -> {
                 view.renderResponse(response);
             });
