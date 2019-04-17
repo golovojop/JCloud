@@ -23,7 +23,9 @@ import network.CloudClient;
 import network.MainView;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.URL;
+import java.nio.channels.FileChannel;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
@@ -133,6 +135,11 @@ public class MainController implements Initializable, MainView {
         client.handleCommand(new ClientDir(messageId++, sessionId, null));
     }
 
+    @FXML
+    public void initiateDownload(ActionEvent actionEvent) {
+        putInQueue(new ClientGet(messageId++, sessionId, "user3.txt"));
+    }
+
     /**
      * TODO: Отобразить ответ сервера
      */
@@ -170,6 +177,8 @@ public class MainController implements Initializable, MainView {
                 break;
             case SALERT:
                 showAlert(((ServerAlertResponse) response).getMessage());
+                break;
+            case SGET:
                 break;
             default:
                 dp(this, "Unknown server message");

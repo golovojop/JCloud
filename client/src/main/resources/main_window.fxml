@@ -44,7 +44,7 @@
         <Button text="Удалить" fx:id="btnRemoveLocal" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
     <HBox fx:id="controlCloud" GridPane.rowIndex="3" GridPane.columnIndex="1" alignment="CENTER">
-        <Button text="Скачать" fx:id="btnSendStore" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button text="Скачать" fx:id="btnSendStore" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#initiateDownload"/>
         <Button text="Обновить" fx:id="btnUpdateStore" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#dirRemote"/>
         <Button text="Удалить" fx:id="btnRemoveStore" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
