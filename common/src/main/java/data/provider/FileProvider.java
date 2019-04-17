@@ -48,6 +48,13 @@ public class FileProvider {
     }
 
     /**
+     * TODO: Создать файл
+     */
+    public Path createFile(Path filePath) {
+        return FileHelper.createFile(filePath);
+    }
+
+    /**
      * TODO: Создать каталог
      */
     public boolean createDirectory(Path targetDir) {

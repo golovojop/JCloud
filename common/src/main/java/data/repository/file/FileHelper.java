@@ -46,6 +46,18 @@ public class FileHelper {
     }
 
     /**
+     * TODO: Создать файл (пока без атрибутов)
+     */
+    public static Path createFile(Path filePath) {
+        if(!Files.exists(filePath)) {
+            try {
+                return Files.createFile(filePath);
+            } catch (IOException e) {e.printStackTrace();}
+        }
+        return null;
+    }
+
+    /**
      * TODO: Создать каталог
      */
     public static boolean createDirectory(Path targetDir) {

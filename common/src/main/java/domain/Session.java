@@ -3,15 +3,17 @@ package domain;
 
 import conversation.protocol.SessionId;
 
+import java.nio.file.Path;
+
 public class Session {
     private SessionId sessionId;
     private Customer customer;
-    private String dir;
+    private Path currentDir;
 
-    public Session(SessionId sessionId, Customer customer, String dir) {
+    public Session(SessionId sessionId, Customer customer, Path currentDir) {
         this.sessionId = sessionId;
         this.customer = customer;
-        this.dir = dir;
+        this.currentDir = currentDir;
     }
 
     public SessionId getSessionId() {
@@ -22,7 +24,7 @@ public class Session {
         return customer;
     }
 
-    public String getDir() {
-        return dir;
+    public Path getDir() {
+        return currentDir;
     }
 }
