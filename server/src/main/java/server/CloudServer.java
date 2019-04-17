@@ -26,7 +26,7 @@ import domain.Customer;
 import domain.Session;
 
 public class CloudServer implements Runnable {
-    private final String CLOUD_STORAGE = "remote_storage";
+    public final String CLOUD_STORAGE = "remote_storage";
     private Map<SessionId, Session> activeClients;
     private CommandController controller;
 
@@ -90,38 +90,47 @@ public class CloudServer implements Runnable {
      */
     private void registerConnect(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();
-        client.configureBlocking(false);
-        client.register(selector, SelectionKey.OP_READ);
+        attachToSelector(client);
+    }
+
+    /**
+     * TODO: Callback для операций
+     */
+    private void attachToSelector(SocketChannel client){
+        try {
+            client.configureBlocking(false);
+            client.register(selector, SelectionKey.OP_READ);
+        } catch (IOException e) {e.printStackTrace();}
     }
 
     /**
      * TODO: Прием сообщений от клиентов
      */
     private void handleRequest(SelectionKey key) {
-        SocketChannel client = (SocketChannel) key.channel();
-        ClientMessage message = (ClientMessage) Exchanger.receive(client);
+        SocketChannel clientChannel = (SocketChannel) key.channel();
+        ClientMessage message = (ClientMessage) Exchanger.receive(clientChannel);
 
         if (message != null) {
             switch (message.getRequest()) {
                 case AUTH:
                     ClientAuth authCommand = (ClientAuth) message;
                     SessionId sessionId = createSessionId(key);
-                    Exchanger.send(client, new ServerAuthResponse(
+                    Exchanger.send(clientChannel, new ServerAuthResponse(
                             message.getId(),
                             authenticateClient(authCommand.getCustomer(), sessionId),
                             sessionId));
                     break;
                 case SIGNUP:
                     ClientSignup cs = (ClientSignup) message;
-                    Exchanger.send(client, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
+                    Exchanger.send(clientChannel, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
                     break;
                 default:
-                    commandProcessor(client, message);
+                    commandProcessor(key);
             }
         } else {
             try {
                 activeClients.remove(createSessionId(key));
-                client.close();
+                clientChannel.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -131,27 +140,45 @@ public class CloudServer implements Runnable {
     /**
      * TODO: Взаимодействие с клиентом
      */
-    private void commandProcessor(SocketChannel client, ClientMessage message) {
+    private void commandProcessor(SelectionKey key) {
+        SocketChannel clientChannel = (SocketChannel) key.channel();
+        ClientMessage message = (ClientMessage) Exchanger.receive(clientChannel);
 
         Session session = activeClients.get(message.getSessionId());
 
+        // TODO: Авторизация сессии
         if(session == null) {
-            Exchanger.send(client, new ServerAlertResponse(message.getId(), "You should authenticate first"));
+            Exchanger.send(clientChannel, new ServerAlertResponse(message.getId(), "You should authenticate first"));
             return;
         }
 
         switch (message.getRequest()) {
             case DIR:
-                Exchanger.send(client, controller.commandDir((ClientDir) message, session));
+                Exchanger.send(clientChannel, controller.commandDir((ClientDir) message, session));
                 break;
             case BYE:
                 activeClients.remove(message.getSessionId());
                 dp(this, String.format("Client terminated with message:'%s'", ((ClientBye)message).getMessage()));
                 break;
+            case GET:   // TODO: Отключаем SocketChannel от селектора
+            case PUT:   // TODO: и передаем его в поток передачи файла.
+                key.channel();
+                /**
+                 * Для передачи файла требуется знать:
+                 * - сокет (channel)
+                 * - тип передачи: отправка/прием
+                 * - каталог
+                 * - имя файла
+                 * - callback
+                 */
+                new FileTransfer(clientChannel,
+                        message.getRequest(),
+                        Paths.get(session.getDir().toString(), ((ClientGet)message).getFileName()),
+                        this::attachToSelector);
+                break;
             default:
                 dp(this, "Unknown client message");
         }
-
     }
 
     /**
@@ -160,11 +187,9 @@ public class CloudServer implements Runnable {
     private boolean authenticateClient(Customer customer, SessionId sessionId) {
 
         if (isAuthenticated(sessionId)) {
-//            dp(this, "authenticateClient[1]. " + activeClients.get(sessionId).getSessionId());
             return true;
         } else if (customerDao.getCustomerByLoginAndPass(customer.getLogin(), customer.getPass()) != null) {
-            activeClients.put(sessionId, new Session(sessionId, customer, customer.getLogin()));
-//            dp(this, "authenticateClient[2]. " + activeClients.get(sessionId).getSessionId());
+            activeClients.put(sessionId, new Session(sessionId, customer, Paths.get(CLOUD_STORAGE, customer.getLogin())));
             return true;
         }
         return false;

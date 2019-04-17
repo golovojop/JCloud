@@ -23,7 +23,7 @@ public class CommandController {
     }
 
     public ServerDirResponse commandDir(ClientDir request, Session session){
-        String path = request.getTarget() != null ? request.getTarget() : session.getDir();
+        String path = request.getTarget() != null ? request.getTarget() : session.getDir().toString();
         FileDescriptor[] fd = fileProvider.collectFiles(Paths.get(storageRoot, path));
 
         ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(Paths.get(storageRoot, path)));
