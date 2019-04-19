@@ -1,8 +1,6 @@
 package controller;
 
-import conversation.protocol.ClientDir;
-import conversation.protocol.ServerDirResponse;
-import conversation.protocol.ServerSignupResponse;
+import conversation.protocol.*;
 import data.provider.FileProvider;
 import domain.FileDescriptor;
 import domain.Session;
@@ -27,6 +25,10 @@ public class CommandController {
         Path path = request.getTarget() == null ? session.getCurrentDir() : Paths.get(session.getCurrentDir().toString(), request.getTarget());
         ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(path));
         return response;
+    }
+
+    public ServerDelResponse commandDel(ClientDelFile request, Session session){
+        return new ServerDelResponse(request.getId(), fileProvider.deleteFile(Paths.get(session.getCurrentDir().toString(), request.getFileName())));
     }
 
 }

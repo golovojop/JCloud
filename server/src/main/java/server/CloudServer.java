@@ -106,7 +106,7 @@ public class CloudServer implements Runnable {
 
     /**
      * TODO: Регистрация канала в селекторе.
-     * Данная функция может вызываться из разных потоков (CloudServer, FileTransfer)
+     * Метод вызывается из разных потоков (CloudServer, FileTransfer),
      * поэтому требуется дополнительная синхронизация (здесь реализовано через Lock)
      * https://bit.ly/2ULK9KM
      * https://bit.ly/2IxCTeW
@@ -175,24 +175,25 @@ public class CloudServer implements Runnable {
             case DIR:
                 Exchanger.send(clientChannel, controller.commandDir((ClientDir) message, session));
                 break;
+            case DELETE:
+                Exchanger.send(clientChannel, controller.commandDel((ClientDelFile) message, session));
+                break;
             case BYE:
                 activeClients.remove(message.getSessionId());
                 dp(this, String.format("Client terminated with message:'%s'", ((ClientBye)message).getMessage()));
                 break;
             case GET:   // TODO: Отключаем SocketChannel от селектора
-            case PUT:   // TODO: и передаем его в поток передачи файла.
                 key.cancel();
-                /**
-                 * Для передачи файла требуется знать:
-                 * - сокет (channel)
-                 * - тип передачи: отправка/прием
-                 * - каталог
-                 * - имя файла
-                 * - callback
-                 */
                 new FileTransfer(clientChannel,
                         message.getRequest(),
                         Paths.get(session.getCurrentDir().toString(), ((ClientGet)message).getFileName()),
+                        this::attachToSelector);
+                break;
+            case PUT:   // TODO: и передаем его в поток передачи файла.
+                key.cancel();
+                new FileTransfer(clientChannel,
+                        message.getRequest(),
+                        Paths.get(session.getCurrentDir().toString(), ((ClientPut)message).getFileName()),
                         this::attachToSelector);
                 break;
             default:
@@ -213,20 +214,6 @@ public class CloudServer implements Runnable {
         }
         return false;
     }
-
-    /**
-     * TODO: Создать учетную запись и домашний каталог клиента
-     */
-//    private boolean signupClient(Customer customer, SessionId sessionId) {
-//        boolean result = false;
-//
-//        if (activeClients.get(sessionId) == null) {
-//            if (customerDao.insertCustomer(customer)) {
-//                return fileProvider.createDirectory(Paths.get(CLOUD_STORAGE, customer.getLogin()));
-//            }
-//        }
-//        return result;
-//    }
 
     /**
      * TODO: Ограничения на регистрацию:

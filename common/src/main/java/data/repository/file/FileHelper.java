@@ -15,17 +15,7 @@ public class FileHelper {
      * TODO: Получить список файлов в папке path
      */
     public static List<File> listFiles(String path) {
-        List<File> result = null;
-
-        try (Stream<Path> walk = Files.walk(Paths.get(path))) {
-            result = walk.filter(Files::isRegularFile)
-                    .map(p -> p.toFile())
-                    .collect(Collectors.toList());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return result;
+        return listFiles(Paths.get(path));
     }
 
     /**
@@ -72,5 +62,16 @@ public class FileHelper {
             System.out.println("Directory " + targetDir.toString() + " already exists");
         }
         return result;
+    }
+
+    /**
+     * TODO: Удалить, если существует
+     */
+    public static boolean deleteFile(Path path) {
+        try {
+            return Files.deleteIfExists(path);
+        } catch (IOException e) {e.printStackTrace();}
+
+        return false;
     }
 }

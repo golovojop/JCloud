@@ -4,12 +4,14 @@ package server;
 
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import conversation.ClientRequest;
@@ -80,10 +82,31 @@ public class FileTransfer implements Runnable {
     }
 
     /**
-     * TODO: Получить файл
+     * TODO: Выполнить загрузку. Если файл существует, то будет перезаписан.
+     * Файл принимается блоками размером block_size. Для приема последнего блока,
+     * который не равен block_size нужно установить точный размер.
      */
     private void receiveFile(Path path) {
+        try (FileOutputStream fos = new FileOutputStream(path.toString());
+             FileChannel toChannel = fos.getChannel()) {
 
+            // TODO: Прочитать длину файла
+            ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
+            channel.read(lengthByteBuffer);
+
+            long sourceLength = lengthByteBuffer.getLong(0);
+            final long block_size = 512;
+            long received = 0;
+
+            dp(this, "receiveFile. Ready to receive " + sourceLength);
+            do {
+                received += toChannel.transferFrom(channel, received, sourceLength - received >= block_size ? block_size : sourceLength - received);
+            } while (received < sourceLength);
+
+            toChannel.force(false);
+            dp(this, "receiveFile. Bytes received = " + received);
+
+        } catch (IOException e) {e.printStackTrace();}
     }
 }
 

@@ -62,6 +62,13 @@ public class FileProvider {
     }
 
     /**
+     * TODO: Удалить файл
+     */
+    public boolean deleteFile(Path path) {
+        return FileHelper.deleteFile(path);
+    }
+
+    /**
      * TODO: Cодержимое строк таблицы
      */
     public static <T> void prepareObservableList(ObservableList<T> list, T[] elements) {
