@@ -24,7 +24,7 @@ public class Session {
         return customer;
     }
 
-    public Path getDir() {
+    public Path getCurrentDir() {
         return currentDir;
     }
 }

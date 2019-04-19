@@ -9,6 +9,7 @@ public class ClientGet extends ClientMessage {
 
     public ClientGet(long id, SessionId sessionId, String fileName) {
         super(id, sessionId, ClientRequest.GET);
+        this.fileName = fileName;
     }
 
     public String getFileName() {
