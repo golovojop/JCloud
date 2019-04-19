@@ -11,6 +11,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import controller.CommandController;
 import conversation.ClientMessage;
@@ -35,6 +39,7 @@ public class CloudServer implements Runnable {
 
     private FileProvider fileProvider;
     private CustomerDao customerDao;
+    private ReentrantLock registerLock;
 
     public CloudServer() throws IOException {
         this.selector = Selector.open();
@@ -43,6 +48,7 @@ public class CloudServer implements Runnable {
         this.serverSocket.configureBlocking(false);
         this.serverSocket.register(selector, SelectionKey.OP_ACCEPT);
         this.activeClients = new HashMap<>();
+        this.registerLock = new ReentrantLock();
 
         // TODO: Провайдер локального хранилища
         fileProvider = new FileProvider();
@@ -61,7 +67,12 @@ public class CloudServer implements Runnable {
             Iterator<SelectionKey> iter;
 
             while (serverSocket.isOpen()) {
-                selector.select();
+
+                // TODO: Синхронизация с методом attachToSelector()
+                registerLock.lock();
+                registerLock.unlock();
+
+                selector.select(500);
 
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 iter = selectedKeys.iterator();
@@ -94,13 +105,23 @@ public class CloudServer implements Runnable {
     }
 
     /**
-     * TODO: Callback для операций
+     * TODO: Регистрация канала в селекторе.
+     * Данная функция может вызываться из разных потоков (CloudServer, FileTransfer)
+     * поэтому требуется дополнительная синхронизация (здесь реализовано через Lock)
+     * https://bit.ly/2ULK9KM
+     * https://bit.ly/2IxCTeW
      */
     private void attachToSelector(SocketChannel client){
         try {
+            registerLock.lock();
+            selector.wakeup();
             client.configureBlocking(false);
             client.register(selector, SelectionKey.OP_READ);
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            registerLock.unlock();
+        }
     }
 
     /**
@@ -125,7 +146,7 @@ public class CloudServer implements Runnable {
                     Exchanger.send(clientChannel, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
                     break;
                 default:
-                    commandProcessor(key);
+                    commandProcessor(key, message);
             }
         } else {
             try {
@@ -140,10 +161,8 @@ public class CloudServer implements Runnable {
     /**
      * TODO: Взаимодействие с клиентом
      */
-    private void commandProcessor(SelectionKey key) {
+    private void commandProcessor(SelectionKey key, ClientMessage message) {
         SocketChannel clientChannel = (SocketChannel) key.channel();
-        ClientMessage message = (ClientMessage) Exchanger.receive(clientChannel);
-
         Session session = activeClients.get(message.getSessionId());
 
         // TODO: Авторизация сессии
@@ -162,7 +181,7 @@ public class CloudServer implements Runnable {
                 break;
             case GET:   // TODO: Отключаем SocketChannel от селектора
             case PUT:   // TODO: и передаем его в поток передачи файла.
-                key.channel();
+                key.cancel();
                 /**
                  * Для передачи файла требуется знать:
                  * - сокет (channel)
@@ -173,7 +192,7 @@ public class CloudServer implements Runnable {
                  */
                 new FileTransfer(clientChannel,
                         message.getRequest(),
-                        Paths.get(session.getDir().toString(), ((ClientGet)message).getFileName()),
+                        Paths.get(session.getCurrentDir().toString(), ((ClientGet)message).getFileName()),
                         this::attachToSelector);
                 break;
             default:

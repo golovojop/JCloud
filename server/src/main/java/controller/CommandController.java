@@ -8,6 +8,7 @@ import domain.FileDescriptor;
 import domain.Session;
 import server.CloudServer;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class CommandController {
@@ -23,10 +24,8 @@ public class CommandController {
     }
 
     public ServerDirResponse commandDir(ClientDir request, Session session){
-        String path = request.getTarget() != null ? request.getTarget() : session.getDir().toString();
-        FileDescriptor[] fd = fileProvider.collectFiles(Paths.get(storageRoot, path));
-
-        ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(Paths.get(storageRoot, path)));
+        Path path = request.getTarget() == null ? session.getCurrentDir() : Paths.get(session.getCurrentDir().toString(), request.getTarget());
+        ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(path));
         return response;
     }
 

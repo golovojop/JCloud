@@ -1,19 +1,19 @@
 package server;
 
-import conversation.ClientMessage;
-import conversation.ClientRequest;
-import conversation.protocol.ClientGet;
 
+
+
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.Consumer;
+
+import conversation.ClientRequest;
+import static utils.Debug.*;
 
 public class FileTransfer implements Runnable {
 
@@ -52,10 +52,30 @@ public class FileTransfer implements Runnable {
      * TODO: Отправить файл
      */
     private void sendFile(Path path) {
+        ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
 
-        try (RandomAccessFile is = new RandomAccessFile(path.toString(), "r")) {
-            FileChannel fromChannel = is.getChannel();
-            fromChannel.transferTo(0, is.length(), channel);
+        try (FileInputStream fis = new FileInputStream(path.toString());
+             FileChannel fromChannel = fis.getChannel()) {
+
+            long block_size = 512;
+            long sourceLength = fromChannel.size();
+            long sent = 0;
+
+            dp(this, "sendFile. Source file length is " + sourceLength);
+
+            // TODO: Сообщить длину передаваемого файла
+            lengthByteBuffer.putLong(0, sourceLength);
+            channel.write(lengthByteBuffer);
+
+            // TODO: Передать файл блоками block_size
+            do{
+                long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
+                dp(this, "sendFile. count " + count);
+                sent += fromChannel.transferTo(sent, count, channel);
+            } while (sent < sourceLength);
+
+            dp(this, "sendFile. Bytes sent " + sent);
+
         } catch (IOException e) {e.printStackTrace();}
     }
 
