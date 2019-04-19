@@ -6,6 +6,7 @@ import conversation.ClientRequest;
 import conversation.Exchanger;
 import conversation.ServerMessage;
 import conversation.protocol.ClientGet;
+import conversation.protocol.ClientPut;
 import javafx.application.Platform;
 
 import static utils.Debug.*;
@@ -13,11 +14,11 @@ import static utils.Debug.*;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,15 +63,25 @@ public class CloudClient implements Runnable {
         }
     }
 
+    /**
+     * TODO: Отправка команд клиента и прием ответов сервера
+     */
     public void handleCommand(ClientMessage command) {
         Exchanger.send(channel, command);
-        dp(this, "handleCommand. Sent command " + command);
 
+        dp(this, "handleCommand. Sent command " + command);
         switch (command.getRequest()) {
             case GET:
-                receiveFile(((ClientGet)command).getFileName());
+                receiveFile(currentDir, ((ClientGet)command).getFileName());
+                Platform.runLater(() -> {
+                    view.updateLocalStoreView();
+                });
                 break;
             case PUT:
+                sendFile(Paths.get(currentDir, ((ClientPut)command).getFileName()));
+                Platform.runLater(() -> {
+                    view.updateRemoteStoreView();
+                });
                 break;
             default: {
                 ServerMessage response = (ServerMessage) Exchanger.receive(channel);
@@ -87,11 +98,14 @@ public class CloudClient implements Runnable {
 
     /**
      * TODO: Выполнить загрузку. Если файл существует, то будет перезаписан.
+     * Файл принимается блоками размером block_size. Для приема последнего блока,
+     * который не равен block_size нужно установить точный размер.
      */
-    private void receiveFile(String fileTo) {
-        try (FileOutputStream fos = new FileOutputStream(Paths.get(currentDir, fileTo).toString());
+    private void receiveFile(String dirTo, String destFileName) {
+        try (FileOutputStream fos = new FileOutputStream(Paths.get(dirTo, destFileName).toString());
              FileChannel toChannel = fos.getChannel()) {
 
+            // TODO: Прочитать длину файла
             ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
             channel.read(lengthByteBuffer);
 
@@ -110,8 +124,34 @@ public class CloudClient implements Runnable {
         } catch (IOException e) {e.printStackTrace();}
     }
 
-    private void sendFile() {
+    /**
+     * TODO: Отправка
+     */
+    private void sendFile(Path path) {
+        ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
 
+        try (FileInputStream fis = new FileInputStream(path.toString());
+             FileChannel fromChannel = fis.getChannel()) {
+
+            long block_size = 512;
+            long sourceLength = fromChannel.size();
+            long sent = 0;
+
+            dp(this, "sendFile. Source file length is " + sourceLength);
+
+            // TODO: Сообщить длину передаваемого файла
+            lengthByteBuffer.putLong(0, sourceLength);
+            channel.write(lengthByteBuffer);
+
+            // TODO: Передать файл блоками block_size
+            do{
+                long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
+                dp(this, "sendFile. count " + count);
+                sent += fromChannel.transferTo(sent, count, channel);
+            } while (sent < sourceLength);
+
+            dp(this, "sendFile. Bytes sent " + sent);
+
+        } catch (IOException e) {e.printStackTrace();}
     }
-
 }

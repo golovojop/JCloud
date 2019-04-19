@@ -29,7 +29,7 @@ public class MainClient extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getClassLoader().getResource("main_window.fxml"));
         Parent root = fxmlLoader.load();
         mainController = fxmlLoader.getController();
-        primaryStage.setTitle("GUI Pattern");
+        primaryStage.setTitle("CloudStore client");
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.show();
     }

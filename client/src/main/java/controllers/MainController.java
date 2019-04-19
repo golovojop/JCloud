@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URL;
 import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
@@ -127,17 +128,44 @@ public class MainController implements Initializable, MainView {
 
     @FXML
     public void dirLocal(ActionEvent actionEvent) {
-        tableLocal.setItems(fileProvider.getStorageModel(LOCAL_STORAGE));
+        updateLocalStoreView();
     }
 
     @FXML
     public void dirRemote(ActionEvent actionEvent) {
         client.handleCommand(new ClientDir(messageId++, sessionId, null));
     }
+    @FXML
+    public void delLocalFile() {
+        FileDescriptor fd = tableLocal.getSelectionModel().getSelectedItem();
+        new DeleteController(fd.getFileName());
+        if(DeleteController.confirmDelete){
+            if(fileProvider.deleteFile(Paths.get(LOCAL_STORAGE, fd.getFileName()))) {
+                tableLocal.getItems().clear();
+                updateLocalStoreView();
+            }
+        }
+    }
+
+    @FXML
+    public void delRemoteFile() {
+        FileDescriptor fd = tableCloud.getSelectionModel().getSelectedItem();
+        new DeleteController(fd.getFileName());
+        if(DeleteController.confirmDelete){
+            putInQueue(new ClientDelFile(messageId++, sessionId, fd.getFileName()));
+        }
+    }
 
     @FXML
     public void initiateDownload(ActionEvent actionEvent) {
-        putInQueue(new ClientGet(messageId++, sessionId, "user3.txt"));
+        FileDescriptor fd = tableCloud.getSelectionModel().getSelectedItem();
+        putInQueue(new ClientGet(messageId++, sessionId, fd.getFileName()));
+    }
+
+    @FXML
+    public void initiateUpload(ActionEvent actionEvent) {
+        FileDescriptor fd = tableLocal.getSelectionModel().getSelectedItem();
+        putInQueue(new ClientPut(messageId++, sessionId, fd.getFileName()));
     }
 
     /**
@@ -179,6 +207,9 @@ public class MainController implements Initializable, MainView {
             case SALERT:
                 showAlert(((ServerAlertResponse) response).getMessage());
                 break;
+            case SDELETE:
+                dirRemote(null);
+                break;
             case SGET:
                 break;
             default:
@@ -196,6 +227,16 @@ public class MainController implements Initializable, MainView {
         }
 
         return message;
+    }
+
+    @Override
+    public void updateLocalStoreView() {
+        tableLocal.setItems(fileProvider.getStorageModel(LOCAL_STORAGE));
+    }
+
+    @Override
+    public void updateRemoteStoreView() {
+        client.handleCommand(new ClientDir(messageId++, sessionId, null));
     }
 
     /**
