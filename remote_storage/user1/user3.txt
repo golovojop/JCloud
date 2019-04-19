@@ -1,1 +1,28 @@
-hello dolly 123
+Некоторая новая терминология: 
+
+UI controller - это Activity или Fragment
+View - это элемент внутри Activity или Fragment'а, например TextView
+
+
+
+"Lifecycle-aware component" observes a "Lifecycle-owner"
+
+Lifecycle-owner - это Observable компонент. Any custom application class can implement the LifecycleOwner interface.
+
+Components that implement LifecycleObserver work seamlessly with components that implement LifecycleOwner because an owner can provide a lifecycle, which an observer can register to watch.
+
+
+LiveData - это Observable data holder и к тому же "Lifecycle-aware component".
+На нем регистрируются пары <LifecycleOwner, android.arch.lifecycle.Observer<T>>.
+Когда у LiveData изменяется значения свойства value, то он извещает обзерверов,
+но только тех чья пара LifecycleOwner находится в активном состоянии.
+
+LiveData - дженерик и может хранить в value данные произвольных типов.
+
+Отличия MutableLiveData от LiveData:
+
+У LiveData методы setValue() и postValue() определены как protected и недоступны непосредственно
+MutableLiveData наследует от LiveData и переопределяет методы как public.
+
+
+LiveData должна инстанциироваться внутри ViewModel, а не в UI controller'e.
