@@ -75,7 +75,7 @@ public class MainController implements Initializable, MainView {
 
         // TODO: Запуск клиента
         try {
-            client = new CloudClient("localhost", 15454, this);
+            client = new CloudClient("localhost", 15454, this, LOCAL_STORAGE);
         } catch (IOException e) {
             // TODO: Нужен алерт и деактивация кнопок
             System.out.println("Client connection error");
@@ -159,6 +159,7 @@ public class MainController implements Initializable, MainView {
 
                 hlSignup.setDisable(isAuthenticated);
                 hlCloud.setDisable(isAuthenticated);
+                dp(this, "renderResponse:SAUTH. response is " + isAuthenticated);
 
                 // TODO: Если аутентифицированы, то запросить список файлов
                 // TODO: Иначе вывести алерт об ошибке

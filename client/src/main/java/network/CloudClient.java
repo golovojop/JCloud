@@ -1,5 +1,6 @@
 package network;
 
+import controllers.MainController;
 import conversation.ClientMessage;
 import conversation.ClientRequest;
 import conversation.Exchanger;
@@ -9,23 +10,29 @@ import javafx.application.Platform;
 
 import static utils.Debug.*;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CloudClient implements Runnable {
 
     private static SocketChannel channel;
-    private MainView view;
     private AtomicBoolean isRunning;
+    private String currentDir;
+    private MainView view;
 
-    public CloudClient(String hostname, int port, MainView view) throws IOException {
+    public CloudClient(String hostname, int port, MainView view, String currentDir) throws IOException {
         channel = SocketChannel.open(new InetSocketAddress(hostname, port));
         this.isRunning = new AtomicBoolean();
         this.isRunning.set(true);
+        this.currentDir = currentDir;
         this.view = view;
         new Thread(this).start();
     }
@@ -35,6 +42,7 @@ public class CloudClient implements Runnable {
         do {
             // TODO: Очередная команда пользователя
             ClientMessage message = view.dequeueMessage();
+            dp(this, "run. Dequeued message " + message);
 
             if (message.getRequest() == ClientRequest.BYE) {
                 isRunning.compareAndSet(true, false);
@@ -56,6 +64,7 @@ public class CloudClient implements Runnable {
 
     public void handleCommand(ClientMessage command) {
         Exchanger.send(channel, command);
+        dp(this, "handleCommand. Sent command " + command);
 
         switch (command.getRequest()) {
             case GET:
@@ -77,21 +86,27 @@ public class CloudClient implements Runnable {
     }
 
     /**
-     * TODO: Выполнить загрузку
+     * TODO: Выполнить загрузку. Если файл существует, то будет перезаписан.
      */
     private void receiveFile(String fileTo) {
-        try (RandomAccessFile fis = new RandomAccessFile(fileTo, "w")) {
-            FileChannel toChannel = fis.getChannel();
-            final long block_size = 1024;
-            long position = 0;
+        try (FileOutputStream fos = new FileOutputStream(Paths.get(currentDir, fileTo).toString());
+             FileChannel toChannel = fos.getChannel()) {
+
+            ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
+            channel.read(lengthByteBuffer);
+
+            long sourceLength = lengthByteBuffer.getLong(0);
+            final long block_size = 512;
             long received = 0;
 
+            dp(this, "receiveFile. Ready to receive " + sourceLength);
             do {
-                received = toChannel.transferFrom(channel, position, block_size);
-                position += received;
+                received += toChannel.transferFrom(channel, received, sourceLength - received >= block_size ? block_size : sourceLength - received);
+            } while (received < sourceLength);
 
-            } while (received == block_size);
-            toChannel.close();
+            toChannel.force(false);
+            dp(this, "receiveFile. Bytes received = " + received);
+
         } catch (IOException e) {e.printStackTrace();}
     }
 
