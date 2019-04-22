@@ -30,8 +30,8 @@ public class CloudClient implements Runnable {
     private String currentDir;
     private MainView view;
 
-    public CloudClient(String hostname, int port, MainView view, String currentDir) throws IOException {
-        channel = SocketChannel.open(new InetSocketAddress(hostname, port));
+    public CloudClient(InetSocketAddress inetAddress, MainView view, String currentDir) throws IOException {
+        channel = SocketChannel.open(inetAddress);
         this.isRunning = new AtomicBoolean();
         this.isRunning.set(true);
         this.currentDir = currentDir;

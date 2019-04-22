@@ -25,9 +25,11 @@ import network.MainView;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
@@ -61,6 +63,7 @@ public class MainController implements Initializable, MainView {
     private ProgressView progressView;
     private boolean isAuthenticated;
     private long messageId;
+    private List<String> commandArgs;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -78,7 +81,14 @@ public class MainController implements Initializable, MainView {
 
         // TODO: Запуск клиента
         try {
-            client = new CloudClient("localhost", 15454, this, LOCAL_STORAGE);
+            InetSocketAddress address;
+            if(commandArgs.size() == 2) {
+                address = new InetSocketAddress(commandArgs.get(0), Integer.parseInt(commandArgs.get(1)));
+            } else {
+                address = new InetSocketAddress("localhost", 15454);
+            }
+
+            client = new CloudClient(address, this, LOCAL_STORAGE);
         } catch (IOException e) {
             // TODO: Нужен алерт и деактивация кнопок
             System.out.println("Client connection error");
@@ -297,6 +307,13 @@ public class MainController implements Initializable, MainView {
      */
     public void stop() {
         putInQueue(new ClientBye(messageId++, sessionId, "Bye"));
+    }
+
+    /**
+     * TODO: Сохранить аргументы командной строки
+     */
+    public void setArgs(List<String> args) {
+        commandArgs = args;
     }
 
     /**
