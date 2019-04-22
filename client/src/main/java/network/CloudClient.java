@@ -21,6 +21,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class CloudClient implements Runnable {
 
@@ -67,30 +68,36 @@ public class CloudClient implements Runnable {
      * TODO: Отправка команд клиента и прием ответов сервера
      */
     public void handleCommand(ClientMessage command) {
+
+        // TODO: Отправить команду
         Exchanger.send(channel, command);
 
         dp(this, "handleCommand. Sent command " + command);
+        // TODO: Обработать ответ сервера
         switch (command.getRequest()) {
             case GET:
-                receiveFile(currentDir, ((ClientGet)command).getFileName());
-                Platform.runLater(() -> {
-                    view.updateLocalStoreView();
-                });
+                receiveFile(currentDir, ((ClientGet) command).getFileName());
+                callInMainThread(view::updateLocalStoreView);
+//                Platform.runLater(() -> {
+//                    view.updateLocalStoreView();
+//                });
                 break;
             case PUT:
-                sendFile(Paths.get(currentDir, ((ClientPut)command).getFileName()));
-                Platform.runLater(() -> {
-                    view.updateRemoteStoreView();
-                });
+                sendFile(Paths.get(currentDir, ((ClientPut) command).getFileName()));
+                callInMainThread(view::updateRemoteStoreView);
+//                Platform.runLater(() -> {
+//                    view.updateRemoteStoreView();
+//                });
                 break;
             default: {
                 ServerMessage response = (ServerMessage) Exchanger.receive(channel);
 
                 // TODO: Отобразить результат в потоке основного окна
                 if (response != null && isRunning.get()) {
-                    Platform.runLater(() -> {
-                        view.renderResponse(response);
-                    });
+                    callInMainThread(view::renderResponse, response);
+//                    Platform.runLater(() -> {
+//                        view.renderResponse(response);
+//                    });
                 }
             }
         }
@@ -105,6 +112,12 @@ public class CloudClient implements Runnable {
         try (FileOutputStream fos = new FileOutputStream(Paths.get(dirTo, destFileName).toString());
              FileChannel toChannel = fos.getChannel()) {
 
+            callInMainThread(view::startProgressView);
+
+//            Platform.runLater(() -> {
+//                view.startProgressView();
+//            });
+
             // TODO: Прочитать длину файла
             ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
             channel.read(lengthByteBuffer);
@@ -116,12 +129,25 @@ public class CloudClient implements Runnable {
             dp(this, "receiveFile. Ready to receive " + sourceLength);
             do {
                 received += toChannel.transferFrom(channel, received, sourceLength - received >= block_size ? block_size : sourceLength - received);
+
+                final double progress = ((double) received) / (double) (sourceLength);
+                callInMainThread(view::updateProgressView, progress);
+//                Platform.runLater(() -> {
+//                    view.updateProgressView(progress);
+//                });
             } while (received < sourceLength);
 
             toChannel.force(false);
             dp(this, "receiveFile. Bytes received = " + received);
 
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            callInMainThread(view::stopProgressView);
+//            Platform.runLater(() -> {
+//                view.stopProgressView();
+//            });
+        }
     }
 
     /**
@@ -132,6 +158,8 @@ public class CloudClient implements Runnable {
 
         try (FileInputStream fis = new FileInputStream(path.toString());
              FileChannel fromChannel = fis.getChannel()) {
+
+            callInMainThread(view::startProgressView);
 
             long block_size = 8192;
             long sourceLength = fromChannel.size();
@@ -144,14 +172,35 @@ public class CloudClient implements Runnable {
             channel.write(lengthByteBuffer);
 
             // TODO: Передать файл блоками block_size
-            do{
+            do {
                 long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
-                dp(this, "sendFile. count " + count);
                 sent += fromChannel.transferTo(sent, count, channel);
+
+                final double progress = ((double) sent) / (double) (sourceLength);
+                callInMainThread(view::updateProgressView, progress);
+
             } while (sent < sourceLength);
 
             dp(this, "sendFile. Bytes sent " + sent);
 
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            callInMainThread(view::stopProgressView);
+        }
+    }
+
+    /**
+     * TODO: Выполнение кода в потоке FX
+     */
+    private <T> void callInMainThread(Consumer<T> op, T arg){
+        Platform.runLater(() -> {
+            op.accept(arg);
+        });
+    }
+    private void callInMainThread(Runnable op){
+        Platform.runLater(() -> {
+            op.run();
+        });
     }
 }

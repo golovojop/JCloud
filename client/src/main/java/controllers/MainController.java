@@ -19,6 +19,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import network.CloudClient;
 import network.MainView;
 
@@ -57,6 +58,7 @@ public class MainController implements Initializable, MainView {
     private FileProvider fileProvider;
     private CloudClient client;
     private SessionId sessionId;
+    private ProgressView progressView;
     private boolean isAuthenticated;
     private long messageId;
 
@@ -241,6 +243,39 @@ public class MainController implements Initializable, MainView {
     @Override
     public void updateRemoteStoreView() {
         putInQueue(new ClientDir(messageId++, sessionId, null));
+    }
+
+    @Override
+    public void startProgressView() {
+        try {
+            Stage stage = new Stage();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/progress_window.fxml"));
+            Parent root = loader.load();
+//            stage.initStyle(StageStyle.UNDECORATED);
+            stage.initStyle(StageStyle.TRANSPARENT);
+            progressView = (ProgressView) loader.getController();
+            progressView.setWidth();
+            updateProgressView(0.0);
+
+            stage.setScene(new Scene(root, 300, 50));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void stopProgressView() {
+        if (progressView != null) {
+            progressView.close();
+        }
+        progressView = null;
+    }
+
+    @Override
+    public void updateProgressView(Double progress) {
+        if (progressView != null) progressView.update(progress);
     }
 
     /**
