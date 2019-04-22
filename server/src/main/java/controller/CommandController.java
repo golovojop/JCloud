@@ -2,7 +2,6 @@ package controller;
 
 import conversation.protocol.*;
 import data.provider.FileProvider;
-import domain.FileDescriptor;
 import domain.Session;
 import server.CloudServer;
 
@@ -28,7 +27,8 @@ public class CommandController {
     }
 
     public ServerDelResponse commandDel(ClientDelFile request, Session session){
-        return new ServerDelResponse(request.getId(), fileProvider.deleteFile(Paths.get(session.getCurrentDir().toString(), request.getFileName())));
+        boolean isDeleted = fileProvider.deleteFile(Paths.get(session.getCurrentDir().toString(), request.getFileName()));
+        return new ServerDelResponse(request.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
     }
 
 }

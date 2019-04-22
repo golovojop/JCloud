@@ -133,14 +133,15 @@ public class MainController implements Initializable, MainView {
 
     @FXML
     public void dirRemote(ActionEvent actionEvent) {
-        client.handleCommand(new ClientDir(messageId++, sessionId, null));
+        putInQueue(new ClientDir(messageId++, sessionId, null));
     }
+
     @FXML
     public void delLocalFile() {
         FileDescriptor fd = tableLocal.getSelectionModel().getSelectedItem();
         new DeleteController(fd.getFileName());
-        if(DeleteController.confirmDelete){
-            if(fileProvider.deleteFile(Paths.get(LOCAL_STORAGE, fd.getFileName()))) {
+        if (DeleteController.confirmDelete) {
+            if (fileProvider.deleteFile(Paths.get(LOCAL_STORAGE, fd.getFileName()))) {
                 tableLocal.getItems().clear();
                 updateLocalStoreView();
             }
@@ -151,7 +152,7 @@ public class MainController implements Initializable, MainView {
     public void delRemoteFile() {
         FileDescriptor fd = tableCloud.getSelectionModel().getSelectedItem();
         new DeleteController(fd.getFileName());
-        if(DeleteController.confirmDelete){
+        if (DeleteController.confirmDelete) {
             putInQueue(new ClientDelFile(messageId++, sessionId, fd.getFileName()));
         }
     }
@@ -176,7 +177,7 @@ public class MainController implements Initializable, MainView {
         switch (response.getResponse()) {
             case SDIR:
                 FileDescriptor[] fd = ((ServerDirResponse) response).getFiles();
-                if(fd.length != 0) {
+                if (fd.length != 0) {
                     tableCloud.setItems(fileProvider.getStorageModel(fd));
                 }
                 break;
@@ -199,7 +200,7 @@ public class MainController implements Initializable, MainView {
                 break;
             case SSIGNUP:
                 ServerSignupResponse respSignup = (ServerSignupResponse) response;
-                if(!respSignup.isStatus()) {
+                if (!respSignup.isStatus()) {
                     showAlert(respSignup.getMessage());
                 }
                 hlSignup.setDisable(respSignup.isStatus());
@@ -208,12 +209,15 @@ public class MainController implements Initializable, MainView {
                 showAlert(((ServerAlertResponse) response).getMessage());
                 break;
             case SDELETE:
-                dirRemote(null);
+                ServerDelResponse respDel = (ServerDelResponse) response;
+                if (respDel.getUpdatedFileList().length != 0) {
+                    tableCloud.setItems(fileProvider.getStorageModel(respDel.getUpdatedFileList()));
+                }
                 break;
             case SGET:
                 break;
             default:
-                dp(this, "Unknown server message");
+                dp(this, "renderResponse. Unknown server message");
         }
     }
 
@@ -236,18 +240,7 @@ public class MainController implements Initializable, MainView {
 
     @Override
     public void updateRemoteStoreView() {
-        client.handleCommand(new ClientDir(messageId++, sessionId, null));
-    }
-
-    /**
-     * TODO: Поместить сообщение в очередь отправки
-     */
-    private void putInQueue(ClientMessage message) {
-        try {
-            queue.put(message);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        putInQueue(new ClientDir(messageId++, sessionId, null));
     }
 
     /**
@@ -269,6 +262,17 @@ public class MainController implements Initializable, MainView {
      */
     public void stop() {
         putInQueue(new ClientBye(messageId++, sessionId, "Bye"));
+    }
+
+    /**
+     * TODO: Поместить сообщение в очередь отправки
+     */
+    private void putInQueue(ClientMessage message) {
+        try {
+            queue.put(message);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     // TODO: Сообщение об ошибке

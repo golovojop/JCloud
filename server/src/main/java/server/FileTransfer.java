@@ -17,19 +17,21 @@ import java.util.function.Consumer;
 import conversation.ClientRequest;
 import static utils.Debug.*;
 
-public class FileTransfer implements Runnable {
+public class FileTransfer <T> implements Runnable {
 
     private SocketChannel channel;
     private ClientRequest request;
     private Path filePath;
+    private final long block_size;
 
-    private Consumer<SocketChannel> op;
+    private Consumer<T> callBack;
 
-    public FileTransfer(SocketChannel channel, ClientRequest request, Path filePath, Consumer<SocketChannel> op) {
+    public FileTransfer(SocketChannel channel, ClientRequest request, Path filePath, Consumer<T> callBack) {
         this.channel = channel;
         this.request = request;
         this.filePath = filePath;
-        this.op = op;
+        this.block_size = 8192;
+        this.callBack = callBack;
 
         new Thread(this).start();
     }
@@ -46,8 +48,12 @@ public class FileTransfer implements Runnable {
                 break;
                 default:
         }
+//        runCallback(callBack, channel);
 
-        op.accept(channel);
+    }
+
+    private <T> void runCallback(Consumer<T> op, T arg) {
+        op.accept(arg);
     }
 
     /**
@@ -59,7 +65,6 @@ public class FileTransfer implements Runnable {
         try (FileInputStream fis = new FileInputStream(path.toString());
              FileChannel fromChannel = fis.getChannel()) {
 
-            long block_size = 512;
             long sourceLength = fromChannel.size();
             long sent = 0;
 
@@ -95,7 +100,6 @@ public class FileTransfer implements Runnable {
             channel.read(lengthByteBuffer);
 
             long sourceLength = lengthByteBuffer.getLong(0);
-            final long block_size = 512;
             long received = 0;
 
             dp(this, "receiveFile. Ready to receive " + sourceLength);

@@ -6,6 +6,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class FileProvider {
 
@@ -34,10 +35,7 @@ public class FileProvider {
      * TODO: Получить список файлов
      */
     public FileDescriptor[] collectFiles(String path){
-        return FileHelper.listFiles(path)
-                .stream()
-                .map(f -> new FileDescriptor(f.getName(), f.length()))
-                .toArray(FileDescriptor[] ::new);
+        return collectFiles(Paths.get(path));
     }
 
     public FileDescriptor[] collectFiles(Path path){

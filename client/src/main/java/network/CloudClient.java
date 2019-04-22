@@ -110,7 +110,7 @@ public class CloudClient implements Runnable {
             channel.read(lengthByteBuffer);
 
             long sourceLength = lengthByteBuffer.getLong(0);
-            final long block_size = 512;
+            final long block_size = 8192;
             long received = 0;
 
             dp(this, "receiveFile. Ready to receive " + sourceLength);
@@ -133,7 +133,7 @@ public class CloudClient implements Runnable {
         try (FileInputStream fis = new FileInputStream(path.toString());
              FileChannel fromChannel = fis.getChannel()) {
 
-            long block_size = 512;
+            long block_size = 8192;
             long sourceLength = fromChannel.size();
             long sent = 0;
 

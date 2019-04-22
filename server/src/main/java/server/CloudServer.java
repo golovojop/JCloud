@@ -197,7 +197,7 @@ public class CloudServer implements Runnable {
                         this::attachToSelector);
                 break;
             default:
-                dp(this, "Unknown client message");
+                dp(this, "commandProcessor. Unknown client message");
         }
     }
 
