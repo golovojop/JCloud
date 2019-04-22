@@ -11,22 +11,20 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import conversation.ClientRequest;
 import static utils.Debug.*;
 
-public class FileTransfer <T> implements Runnable {
+public class FileTransfer implements Runnable {
 
+    private Consumer<SocketChannel> callBack;
     private SocketChannel channel;
     private ClientRequest request;
     private Path filePath;
     private final long block_size;
 
-    private Consumer<T> callBack;
-
-    public FileTransfer(SocketChannel channel, ClientRequest request, Path filePath, Consumer<T> callBack) {
+    public FileTransfer(SocketChannel channel, ClientRequest request, Path filePath, Consumer<SocketChannel> callBack) {
         this.channel = channel;
         this.request = request;
         this.filePath = filePath;
@@ -48,12 +46,9 @@ public class FileTransfer <T> implements Runnable {
                 break;
                 default:
         }
-//        runCallback(callBack, channel);
 
-    }
-
-    private <T> void runCallback(Consumer<T> op, T arg) {
-        op.accept(arg);
+        // TODO: После операции с файлом известить основной поток
+        callBack.accept(channel);
     }
 
     /**
@@ -113,4 +108,3 @@ public class FileTransfer <T> implements Runnable {
         } catch (IOException e) {e.printStackTrace();}
     }
 }
-
