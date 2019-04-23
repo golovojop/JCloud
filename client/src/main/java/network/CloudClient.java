@@ -69,35 +69,27 @@ public class CloudClient implements Runnable {
      */
     public void handleCommand(ClientMessage command) {
 
+        dp(this, "handleCommand. Sending command " + command);
+
         // TODO: Отправить команду
         Exchanger.send(channel, command);
 
-        dp(this, "handleCommand. Sent command " + command);
         // TODO: Обработать ответ сервера
         switch (command.getRequest()) {
             case GET:
                 receiveFile(currentDir, ((ClientGet) command).getFileName());
                 callInMainThread(view::updateLocalStoreView);
-//                Platform.runLater(() -> {
-//                    view.updateLocalStoreView();
-//                });
                 break;
             case PUT:
                 sendFile(Paths.get(currentDir, ((ClientPut) command).getFileName()));
-                callInMainThread(view::updateRemoteStoreView);
-//                Platform.runLater(() -> {
-//                    view.updateRemoteStoreView();
-//                });
-                break;
+//                callInMainThread(view::updateRemoteStoreView);
+//                break;
             default: {
                 ServerMessage response = (ServerMessage) Exchanger.receive(channel);
 
                 // TODO: Отобразить результат в потоке основного окна
                 if (response != null && isRunning.get()) {
                     callInMainThread(view::renderResponse, response);
-//                    Platform.runLater(() -> {
-//                        view.renderResponse(response);
-//                    });
                 }
             }
         }
@@ -114,10 +106,6 @@ public class CloudClient implements Runnable {
 
             callInMainThread(view::startProgressView);
 
-//            Platform.runLater(() -> {
-//                view.startProgressView();
-//            });
-
             // TODO: Прочитать длину файла
             ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
             channel.read(lengthByteBuffer);
@@ -132,9 +120,7 @@ public class CloudClient implements Runnable {
 
                 final double progress = ((double) received) / (double) (sourceLength);
                 callInMainThread(view::updateProgressView, progress);
-//                Platform.runLater(() -> {
-//                    view.updateProgressView(progress);
-//                });
+
             } while (received < sourceLength);
 
             toChannel.force(false);
@@ -144,9 +130,6 @@ public class CloudClient implements Runnable {
             e.printStackTrace();
         } finally {
             callInMainThread(view::stopProgressView);
-//            Platform.runLater(() -> {
-//                view.stopProgressView();
-//            });
         }
     }
 

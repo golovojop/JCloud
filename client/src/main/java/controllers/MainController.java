@@ -24,13 +24,10 @@ import network.CloudClient;
 import network.MainView;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -82,11 +79,12 @@ public class MainController implements Initializable, MainView {
         // TODO: Запуск клиента
         try {
             InetSocketAddress address;
-            if(commandArgs.size() == 2) {
-                address = new InetSocketAddress(commandArgs.get(0), Integer.parseInt(commandArgs.get(1)));
-            } else {
-                address = new InetSocketAddress("localhost", 15454);
-            }
+            address = new InetSocketAddress("localhost", 15454);
+//            if(commandArgs.size() == 2) {
+//                address = new InetSocketAddress(commandArgs.get(0), Integer.parseInt(commandArgs.get(1)));
+//            } else {
+//                address = new InetSocketAddress("localhost", 15454);
+//            }
 
             client = new CloudClient(address, this, LOCAL_STORAGE);
         } catch (IOException e) {
@@ -227,6 +225,13 @@ public class MainController implements Initializable, MainView {
                 }
                 break;
             case SGET:
+                break;
+            case SPUT:
+                ServerPutResponse respPut = (ServerPutResponse) response;
+                if (respPut.getUpdatedFileList().length != 0) {
+                    tableCloud.setItems(fileProvider.getStorageModel(respPut.getUpdatedFileList()));
+                }
+
                 break;
             default:
                 dp(this, "renderResponse. Unknown server message");

@@ -20,7 +20,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.util.Arrays;
+import static utils.Debug.*;
 
 public class MainClient extends Application {
 
@@ -31,7 +31,10 @@ public class MainClient extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getClassLoader().getResource("main_window.fxml"));
         Parent root = fxmlLoader.load();
         mainController = fxmlLoader.getController();
-        mainController.setArgs(getParameters().getRaw());
+        dp(this, "start. " + getParameters().getRaw().size());
+
+//        mainController.setArgs(getParameters().getRaw());
+//        dp(this, "start. " + getParameters().getRaw().size());
         primaryStage.setTitle("CloudStore client");
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.show();
