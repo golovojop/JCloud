@@ -72,7 +72,6 @@ public class FileTransfer implements Runnable {
             // TODO: Передать файл блоками block_size
             do{
                 long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
-                dp(this, "sendFile. count " + count);
                 sent += fromChannel.transferTo(sent, count, channel);
             } while (sent < sourceLength);
 

@@ -31,4 +31,8 @@ public class CommandController {
         return new ServerDelResponse(request.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
     }
 
+    public ServerPutResponse commandPut(ClientPut request, Session session) {
+        return new ServerPutResponse(request.getId(), fileProvider.collectFiles(session.getCurrentDir()));
+    }
+
 }
