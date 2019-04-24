@@ -26,6 +26,7 @@ import network.MainView;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -176,7 +177,12 @@ public class MainController implements Initializable, MainView {
     @FXML
     public void initiateUpload(ActionEvent actionEvent) {
         FileDescriptor fd = tableLocal.getSelectionModel().getSelectedItem();
-        putInQueue(new ClientPut(messageId++, sessionId, fd.getFileName()));
+        try {
+            putInQueue(new ClientPut(messageId++, sessionId, fd.getFileName(), Files.size(Paths.get(LOCAL_STORAGE, fd.getFileName()))));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     /**
@@ -224,10 +230,8 @@ public class MainController implements Initializable, MainView {
                     tableCloud.setItems(fileProvider.getStorageModel(respDel.getUpdatedFileList()));
                 }
                 break;
-            case SGET:
-                break;
-            case SPUT:
-                ServerPutResponse respPut = (ServerPutResponse) response;
+            case SPUT_FINISH:
+                ServerPutFinishedResponse respPut = (ServerPutFinishedResponse) response;
                 if (respPut.getUpdatedFileList().length != 0) {
                     tableCloud.setItems(fileProvider.getStorageModel(respPut.getUpdatedFileList()));
                 }

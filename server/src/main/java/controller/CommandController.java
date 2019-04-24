@@ -5,6 +5,8 @@ import data.provider.FileProvider;
 import domain.Session;
 import server.CloudServer;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -31,8 +33,20 @@ public class CommandController {
         return new ServerDelResponse(request.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
     }
 
-    public ServerPutResponse commandPut(ClientPut request, Session session) {
-        return new ServerPutResponse(request.getId(), fileProvider.collectFiles(session.getCurrentDir()));
+    public ServerGetResponse commandGet(ClientGet request, Session session) {
+        long length = -1;
+        Path path = Paths.get(session.getCurrentDir().toString(), request.getFileName());
+        try {
+            length = Files.size(path);
+        } catch (IOException e) {e.printStackTrace();}
+        return new ServerGetResponse(request.getId(), request.getFileName(), length, length != -1);
     }
 
+    public ServerPutReadyResponse commandPutReady(ClientPut request, Session session) {
+        return new ServerPutReadyResponse(request.getId(), request.getFileName(), request.getLength());
+    }
+
+    public ServerPutFinishedResponse commandPutFinished(ClientPut request, Session session) {
+        return new ServerPutFinishedResponse(request.getId(), fileProvider.collectFiles(session.getCurrentDir()));
+    }
 }

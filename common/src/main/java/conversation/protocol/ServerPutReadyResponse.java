@@ -2,18 +2,23 @@ package conversation.protocol;
 
 import conversation.ServerMessage;
 import conversation.ServerResponse;
-import domain.FileDescriptor;
 
-public class ServerPutResponse extends ServerMessage {
+public class ServerPutReadyResponse extends ServerMessage {
     static final long serialVersionUID = 101L;
-    private FileDescriptor[] updatedFileList;
+    private String fileName;
+    private long length;
 
-    public ServerPutResponse(long id, FileDescriptor[] updatedFileList) {
-        super(id, ServerResponse.SPUT);
-        this.updatedFileList = updatedFileList;
+    public ServerPutReadyResponse(long id, String fileName, long length) {
+        super(id, ServerResponse.SPUT_READY);
+        this.fileName = fileName;
+        this.length = length;
     }
 
-    public FileDescriptor[] getUpdatedFileList() {
-        return updatedFileList;
+    public String getFileName() {
+        return fileName;
+    }
+
+    public long getLength() {
+        return length;
     }
 }

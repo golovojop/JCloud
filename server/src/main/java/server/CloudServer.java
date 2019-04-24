@@ -76,25 +76,32 @@ public class CloudServer implements Runnable {
                 registerLock.lock();
                 registerLock.unlock();
 
-                selector.select(1000);
+                int i = selector.select(500);
+                if(i > 0) dp(this, "run. Keys selected " + i);
 
-                Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                iter = selectedKeys.iterator();
-
-                while (iter.hasNext()) {
-
-                    SelectionKey key = iter.next();
-                    iter.remove();
-
+                for(SelectionKey key : selector.selectedKeys()) {
                     if (key.isAcceptable()) {
-//                        dp(this, "run. Received OP_ACCEPT");
                         registerConnect(selector, serverSocket);
                     }
                     if (key.isReadable()) {
-//                        dp(this, "run. Received OP_READ");
                         handleRequest(key);
                     }
                 }
+
+//                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+//                iter = selectedKeys.iterator();
+//                while (iter.hasNext()) {
+//                    SelectionKey key = iter.next();
+////                    iter.remove();
+//                    if (key.isAcceptable()) {
+////                        dp(this, "run. Received OP_ACCEPT");
+//                        registerConnect(selector, serverSocket);
+//                    }
+//                    if (key.isReadable()) {
+////                        dp(this, "run. Received OP_READ");
+//                        handleRequest(key);
+//                    }
+//                }
             }
 
         } catch (IOException e) {
@@ -108,7 +115,6 @@ public class CloudServer implements Runnable {
     private void registerConnect(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();
         if (client != null) {
-//            dp(this, "registerConnect. Attached " + client.toString());
             client.configureBlocking(false);
             client.register(selector, SelectionKey.OP_READ);
         }
@@ -125,10 +131,9 @@ public class CloudServer implements Runnable {
         if (client != null) {
             try {
                 registerLock.lock();
-//                dp(this, "attachToSelector. Attached " + client.toString());
+                dp(this, "attachToSelector. Attached " + client.toString());
                 client.configureBlocking(false);
                 client.register(selector, SelectionKey.OP_READ);
-//                selector.wakeup();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -162,15 +167,16 @@ public class CloudServer implements Runnable {
                 default:
                     commandProcessor(key, message);
             }
-        } else {
-            try {
-                dp(this, "handleRequest. Received " + message);
-                activeClients.remove(createSessionId(key));
-                clientChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+//        else {
+//            try {
+//                dp(this, "handleRequest. Received " + message);
+//                activeClients.remove(createSessionId(key));
+//                clientChannel.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
     }
 
     /**
@@ -197,20 +203,24 @@ public class CloudServer implements Runnable {
                 activeClients.remove(message.getSessionId());
                 dp(this, String.format("Client terminated with message:'%s'", ((ClientBye) message).getMessage()));
                 break;
-            case GET:   // TODO: Отключаем SocketChannel от селектора
+            case GET:
+                Exchanger.send(clientChannel, controller.commandGet((ClientGet) message, session));
                 key.cancel();
                 new FileTransfer(clientChannel,
                         message.getRequest(),
                         Paths.get(session.getCurrentDir().toString(), ((ClientGet) message).getFileName()),
                         this::attachToSelector);
                 break;
-            case PUT:   // TODO: и передаем его в поток передачи файла.
+            case PUT:
+                Exchanger.send(clientChannel, controller.commandPutReady((ClientPut) message, session));
                 key.cancel();
+                dp(this, "commandProcessor. Prepare to receive file with size " + ((ClientPut) message).getLength());
                 new FileTransfer(clientChannel,
                         message.getRequest(),
                         Paths.get(session.getCurrentDir().toString(), ((ClientPut) message).getFileName()),
+                        ((ClientPut) message).getLength(),
                         this::attachToSelector);
-                Exchanger.send(clientChannel, controller.commandPut((ClientPut) message, session));
+                Exchanger.send(clientChannel, controller.commandPutFinished((ClientPut) message, session));
                 break;
             default:
                 dp(this, "commandProcessor. Unknown client message");
