@@ -5,6 +5,8 @@
 
 package conversation;
 
+import exception.RemoteHostDisconnected;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -40,7 +42,7 @@ public class Exchanger {
     /**
      * TODO: Получить и распаковать
      */
-    public static Serializable receive(SocketChannel socket) {
+    public static Serializable receive(SocketChannel socket) throws RemoteHostDisconnected {
 
         ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[4]);
         ByteBuffer dataByteBuffer;
@@ -53,7 +55,7 @@ public class Exchanger {
 
             if(bytesRead == -1) {
                 System.out.println("Exchanger:receive(): Remote host " + socket.getRemoteAddress().toString() + " closed connection");
-                return null;
+                throw new RemoteHostDisconnected();
             }
 
             if (lengthByteBuffer.remaining() == 0 && lengthByteBuffer.getInt(0) > 0) {

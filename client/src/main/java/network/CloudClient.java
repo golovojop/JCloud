@@ -6,6 +6,7 @@ import conversation.Exchanger;
 import conversation.ServerMessage;
 import conversation.protocol.ServerGetResponse;
 import conversation.protocol.ServerPutReadyResponse;
+import exception.RemoteHostDisconnected;
 import javafx.application.Platform;
 
 import static utils.Debug.*;
@@ -52,7 +53,8 @@ public class CloudClient implements Runnable {
                     Exchanger.send(channel, message);
                 }
             } else {
-                handleCommand(message);
+                boolean result = handleCommand(message);
+                isRunning.set(result);
             }
         } while (isRunning.get());
 
@@ -66,34 +68,48 @@ public class CloudClient implements Runnable {
     /**
      * TODO: Отправка команд клиента и прием ответов сервера
      */
-    public void handleCommand(ClientMessage command) {
+    public boolean handleCommand(ClientMessage command) {
+        ServerMessage response = null;
+        long lastCommandId = command.getId();
 
         dp(this, "handleCommand. Sending command " + command);
 
         // TODO: Отправить команду
         Exchanger.send(channel, command);
 
-        long lastCommandId = command.getId();
-
         // TODO: Получить ответ
-        ServerMessage response = (ServerMessage) Exchanger.receive(channel);
+        try {
+            response = (ServerMessage) Exchanger.receive(channel);
+        } catch (RemoteHostDisconnected e) {
+            dp(this, "handleCommand. Server has crashed.");
+            return false;
+        }
 
         if (response.getId() != lastCommandId) {
             dp(this, "handleCommand. Incorrect response sequence number");
-            return;
+            return false;
         }
 
         switch (response.getResponse()) {
             case SGET:
+                boolean isValidFileLength = ((ServerGetResponse)response).getLength() != -1;
 
-                receiveFile(currentDir,
-                        ((ServerGetResponse) response).getFileName(),
-                        ((ServerGetResponse) response).getLength());
-                callInMainThread(view::updateLocalStoreView);
+                if(isValidFileLength) {
+                    receiveFile(currentDir,
+                            ((ServerGetResponse) response).getFileName(),
+                            ((ServerGetResponse) response).getLength());
+                    callInMainThread(view::updateLocalStoreView);
+                }
                 break;
             case SPUT_READY:
                 sendFile(Paths.get(currentDir, ((ServerPutReadyResponse) response).getFileName()), ((ServerPutReadyResponse) response).getLength());
-                response = (ServerMessage) Exchanger.receive(channel);
+                try {
+                    response = (ServerMessage) Exchanger.receive(channel);
+                } catch (RemoteHostDisconnected e) {
+                    dp(this, "handleCommand. Server has crashed.");
+                    return false;
+                }
+
             default: {
                 // TODO: Отобразить результат в потоке основного окна
                 if (response != null && isRunning.get()) {
@@ -101,26 +117,7 @@ public class CloudClient implements Runnable {
                 }
             }
         }
-
-//        // TODO: Обработать ответ сервера
-//        switch (command.getRequest()) {
-//            case GET:
-//                receiveFile(currentDir, ((ClientGet) command).getFileName());
-//                callInMainThread(view::updateLocalStoreView);
-//                break;
-//            case PUT:
-//                sendFile(Paths.get(currentDir, ((ClientPut) command).getFileName()));
-////                callInMainThread(view::updateRemoteStoreView);
-//                break;
-//            default: {
-//                ServerMessage response = (ServerMessage) Exchanger.receive(channel);
-//
-//                // TODO: Отобразить результат в потоке основного окна
-//                if (response != null && isRunning.get()) {
-//                    callInMainThread(view::renderResponse, response);
-//                }
-//            }
-//        }
+        return true;
     }
 
     /**

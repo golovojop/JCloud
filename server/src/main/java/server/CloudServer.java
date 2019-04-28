@@ -28,6 +28,7 @@ import data.provider.FileProvider;
 import data.provider.JdbcProvider;
 import domain.Customer;
 import domain.Session;
+import exception.RemoteHostDisconnected;
 
 public class CloudServer implements Runnable {
     public final String CLOUD_STORAGE = "remote_storage";
@@ -76,10 +77,20 @@ public class CloudServer implements Runnable {
                 registerLock.lock();
                 registerLock.unlock();
 
-                int i = selector.select(500);
-                if(i > 0) dp(this, "run. Keys selected " + i);
+                int keysQty = selector.select(500);
 
-                for(SelectionKey key : selector.selectedKeys()) {
+                if(keysQty == 0){
+                    continue;
+                }
+                else {
+                    dp(this, "run. Keys selected " + keysQty);
+                }
+
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                iter = selectedKeys.iterator();
+                while (iter.hasNext()) {
+                    SelectionKey key = iter.next();
+                    iter.remove();
                     if (key.isAcceptable()) {
                         registerConnect(selector, serverSocket);
                     }
@@ -87,23 +98,7 @@ public class CloudServer implements Runnable {
                         handleRequest(key);
                     }
                 }
-
-//                Set<SelectionKey> selectedKeys = selector.selectedKeys();
-//                iter = selectedKeys.iterator();
-//                while (iter.hasNext()) {
-//                    SelectionKey key = iter.next();
-////                    iter.remove();
-//                    if (key.isAcceptable()) {
-////                        dp(this, "run. Received OP_ACCEPT");
-//                        registerConnect(selector, serverSocket);
-//                    }
-//                    if (key.isReadable()) {
-////                        dp(this, "run. Received OP_READ");
-//                        handleRequest(key);
-//                    }
-//                }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -117,6 +112,7 @@ public class CloudServer implements Runnable {
         if (client != null) {
             client.configureBlocking(false);
             client.register(selector, SelectionKey.OP_READ);
+            dp(this, "registerConnect. Received a new connection from " + client.socket().getRemoteSocketAddress());
         }
     }
 
@@ -147,36 +143,38 @@ public class CloudServer implements Runnable {
      */
     private void handleRequest(SelectionKey key) {
         SocketChannel clientChannel = (SocketChannel) key.channel();
-        ClientMessage message = (ClientMessage) Exchanger.receive(clientChannel);
 
-        if (message != null) {
-            dp(this, "handleRequest. Received " + message.getRequest());
-            switch (message.getRequest()) {
-                case AUTH:
-                    ClientAuth authCommand = (ClientAuth) message;
-                    SessionId sessionId = createSessionId(key);
-                    Exchanger.send(clientChannel, new ServerAuthResponse(
-                            message.getId(),
-                            authenticateClient(authCommand.getCustomer(), sessionId),
-                            sessionId));
-                    break;
-                case SIGNUP:
-                    ClientSignup cs = (ClientSignup) message;
-                    Exchanger.send(clientChannel, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
-                    break;
-                default:
-                    commandProcessor(key, message);
+        try {
+            ClientMessage message = (ClientMessage) Exchanger.receive(clientChannel);
+
+            if (message != null) {
+                dp(this, "handleRequest. Received " + message.getRequest());
+                switch (message.getRequest()) {
+                    case AUTH:
+                        ClientAuth authCommand = (ClientAuth) message;
+                        SessionId sessionId = createSessionId(key);
+                        Exchanger.send(clientChannel, new ServerAuthResponse(
+                                message.getId(),
+                                authenticateClient(authCommand.getCustomer(), sessionId),
+                                sessionId));
+                        break;
+                    case SIGNUP:
+                        ClientSignup cs = (ClientSignup) message;
+                        Exchanger.send(clientChannel, signupClient(message.getId(), cs.getCustomer(), createSessionId(key)));
+                        break;
+                    default:
+                        commandProcessor(key, message);
+                }
+            }
+        } catch (RemoteHostDisconnected ex) {
+            try {
+                dp(this, "handleRequest. Client with sessionId  " + createSessionId(key).getId() + " disconnected");
+                activeClients.remove(createSessionId(key));
+                clientChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
-//        else {
-//            try {
-//                dp(this, "handleRequest. Received " + message);
-//                activeClients.remove(createSessionId(key));
-//                clientChannel.close();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
     /**
@@ -214,7 +212,7 @@ public class CloudServer implements Runnable {
             case PUT:
                 Exchanger.send(clientChannel, controller.commandPutReady((ClientPut) message, session));
                 key.cancel();
-                dp(this, "commandProcessor. Prepare to receive file with size " + ((ClientPut) message).getLength());
+                dp(this, "commandProcessor. Ready to receive file with size " + ((ClientPut) message).getLength());
                 new FileTransfer(clientChannel,
                         message.getRequest(),
                         Paths.get(session.getCurrentDir().toString(), ((ClientPut) message).getFileName()),

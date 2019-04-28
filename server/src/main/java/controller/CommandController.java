@@ -33,13 +33,15 @@ public class CommandController {
         return new ServerDelResponse(request.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
     }
 
-    public ServerGetResponse commandGet(ClientGet request, Session session) {
+    public ServerGetResponse  commandGet(ClientGet request, Session session) {
         long length = -1;
         Path path = Paths.get(session.getCurrentDir().toString(), request.getFileName());
         try {
             length = Files.size(path);
-        } catch (IOException e) {e.printStackTrace();}
-        return new ServerGetResponse(request.getId(), request.getFileName(), length, length != -1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ServerGetResponse(request.getId(), request.getFileName(), length);
     }
 
     public ServerPutReadyResponse commandPutReady(ClientPut request, Session session) {

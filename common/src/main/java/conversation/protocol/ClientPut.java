@@ -8,12 +8,6 @@ public class ClientPut extends ClientMessage {
     private String fileName;
     private long length;
 
-    public ClientPut(long id, SessionId sessionId, String fileName) {
-        super(id, sessionId, ClientRequest.PUT);
-        this.fileName = fileName;
-        this.length = 0;
-    }
-
     public ClientPut(long id, SessionId sessionId, String fileName, long length) {
         super(id, sessionId, ClientRequest.PUT);
         this.fileName = fileName;

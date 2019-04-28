@@ -182,7 +182,6 @@ public class MainController implements Initializable, MainView {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**
