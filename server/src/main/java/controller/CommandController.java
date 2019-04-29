@@ -22,33 +22,33 @@ public class CommandController {
         this.storageRoot = storageRoot;
     }
 
-    public ServerDirResponse commandDir(ClientDir request, Session session){
-        Path path = request.getTarget() == null ? session.getCurrentDir() : Paths.get(session.getCurrentDir().toString(), request.getTarget());
-        ServerDirResponse response = new ServerDirResponse(request.getId(), fileProvider.collectFiles(path));
+    public ServerDirResponse commandDir(ClientDir clientMessage, Session session){
+        Path path = clientMessage.getTarget() == null ? session.getCurrentDir() : Paths.get(session.getCurrentDir().toString(), clientMessage.getTarget());
+        ServerDirResponse response = new ServerDirResponse(clientMessage.getId(), fileProvider.collectFiles(path));
         return response;
     }
 
-    public ServerDelResponse commandDel(ClientDelFile request, Session session){
-        boolean isDeleted = fileProvider.deleteFile(Paths.get(session.getCurrentDir().toString(), request.getFileName()));
-        return new ServerDelResponse(request.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
+    public ServerDelResponse commandDel(ClientDelFile clientMessage, Session session){
+        boolean isDeleted = fileProvider.deleteFile(Paths.get(session.getCurrentDir().toString(), clientMessage.getFileName()));
+        return new ServerDelResponse(clientMessage.getId(), isDeleted, fileProvider.collectFiles(session.getCurrentDir()));
     }
 
-    public ServerGetResponse  commandGet(ClientGet request, Session session) {
+    public ServerGetResponse  commandGet(ClientGet clientMessage, Session session) {
         long length = -1;
-        Path path = Paths.get(session.getCurrentDir().toString(), request.getFileName());
+        Path path = Paths.get(session.getCurrentDir().toString(), clientMessage.getFileName());
         try {
             length = Files.size(path);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new ServerGetResponse(request.getId(), request.getFileName(), length);
+        return new ServerGetResponse(clientMessage.getId(), clientMessage.getFileName(), length);
     }
 
-    public ServerPutReadyResponse commandPutReady(ClientPut request, Session session) {
-        return new ServerPutReadyResponse(request.getId(), request.getFileName(), request.getLength());
+    public ServerPutReadyResponse commandPutReady(ClientPut clientMessage, Session session) {
+        return new ServerPutReadyResponse(clientMessage.getId(), clientMessage.getFileName(), clientMessage.getLength());
     }
 
-    public ServerPutFinishedResponse commandPutFinished(ClientPut request, Session session) {
-        return new ServerPutFinishedResponse(request.getId(), fileProvider.collectFiles(session.getCurrentDir()));
+    public ServerPutFinishedResponse commandPutFinished(ClientPut clientMessage, Session session) {
+        return new ServerPutFinishedResponse(clientMessage.getId(), fileProvider.collectFiles(session.getCurrentDir()));
     }
 }

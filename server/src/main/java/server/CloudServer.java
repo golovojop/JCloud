@@ -11,13 +11,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import controller.CommandController;
 import conversation.ClientMessage;
+import conversation.ClientRequest;
 import conversation.Exchanger;
 import conversation.protocol.*;
 
@@ -91,6 +89,7 @@ public class CloudServer implements Runnable {
                 while (iter.hasNext()) {
                     SelectionKey key = iter.next();
                     iter.remove();
+
                     if (key.isAcceptable()) {
                         registerConnect(selector, serverSocket);
                     }
@@ -127,14 +126,28 @@ public class CloudServer implements Runnable {
         if (client != null) {
             try {
                 registerLock.lock();
-                dp(this, "attachToSelector. Attached " + client.toString());
                 client.configureBlocking(false);
                 client.register(selector, SelectionKey.OP_READ);
+                dp(this, "attachToSelector. Attached " + client.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 registerLock.unlock();
             }
+        }
+    }
+
+    /**
+     * TODO: Выполнить дополнительные действия после передачи файла
+     */
+    private void postFileTransferHandler(SocketChannel client, ClientMessage message) {
+        attachToSelector(client);
+
+        if(message.getRequest() == ClientRequest.PUT) {
+            // TODO: Отправить клиенту обновленный список файлов в папке
+            Exchanger.send(
+                    client,
+                    controller.commandPutFinished((ClientPut) message, activeClients.get(message.getSessionId())));
         }
     }
 
@@ -202,23 +215,28 @@ public class CloudServer implements Runnable {
                 dp(this, String.format("Client terminated with message:'%s'", ((ClientBye) message).getMessage()));
                 break;
             case GET:
+                // TODO: Response READY + file length
                 Exchanger.send(clientChannel, controller.commandGet((ClientGet) message, session));
+                // TODO: Disconnect from selector
                 key.cancel();
+                // TODO: Send file in new thread
                 new FileTransfer(clientChannel,
-                        message.getRequest(),
+                        message,
                         Paths.get(session.getCurrentDir().toString(), ((ClientGet) message).getFileName()),
-                        this::attachToSelector);
+                        this::postFileTransferHandler);
                 break;
             case PUT:
+                // TODO: Response READY
                 Exchanger.send(clientChannel, controller.commandPutReady((ClientPut) message, session));
+                // TODO: Disconnect from selector
                 key.cancel();
                 dp(this, "commandProcessor. Ready to receive file with size " + ((ClientPut) message).getLength());
+                // TODO: Receive file in new thread
                 new FileTransfer(clientChannel,
-                        message.getRequest(),
+                        message,
                         Paths.get(session.getCurrentDir().toString(), ((ClientPut) message).getFileName()),
                         ((ClientPut) message).getLength(),
-                        this::attachToSelector);
-                Exchanger.send(clientChannel, controller.commandPutFinished((ClientPut) message, session));
+                        this::postFileTransferHandler);
                 break;
             default:
                 dp(this, "commandProcessor. Unknown client message");
