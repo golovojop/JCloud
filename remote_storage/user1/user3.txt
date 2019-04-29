@@ -1,4 +1,4 @@
-Некоторая новая терминология: 
+﻿Некоторая новая терминология: 
 
 UI controller - это Activity или Fragment
 View - это элемент внутри Activity или Fragment'а, например TextView
