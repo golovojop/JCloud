@@ -1,7 +1,7 @@
 package domain;
 
 
-import conversation.protocol.SessionId;
+import conversation.SessionId;
 
 import java.nio.file.Path;
 

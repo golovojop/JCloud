@@ -1,4 +1,4 @@
-package conversation.protocol;
+package conversation;
 
 import java.io.Serializable;
 

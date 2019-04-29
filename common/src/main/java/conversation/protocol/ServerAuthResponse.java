@@ -2,6 +2,7 @@ package conversation.protocol;
 
 import conversation.ServerMessage;
 import conversation.ServerResponse;
+import conversation.SessionId;
 
 public class ServerAuthResponse extends ServerMessage {
     static final long serialVersionUID = 101L;

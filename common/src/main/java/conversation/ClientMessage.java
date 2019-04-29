@@ -1,7 +1,5 @@
 package conversation;
 
-import conversation.protocol.SessionId;
-
 import java.io.Serializable;
 
 public abstract class ClientMessage implements Serializable {

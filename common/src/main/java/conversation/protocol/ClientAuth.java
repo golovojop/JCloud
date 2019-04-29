@@ -2,6 +2,7 @@ package conversation.protocol;
 
 import conversation.ClientMessage;
 import conversation.ClientRequest;
+import conversation.SessionId;
 import domain.Customer;
 
 public class ClientAuth extends ClientMessage {
