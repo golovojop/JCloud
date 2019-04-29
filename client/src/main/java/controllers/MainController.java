@@ -2,6 +2,7 @@ package controllers;
 
 import conversation.ClientMessage;
 import conversation.ServerMessage;
+import conversation.SessionId;
 import conversation.protocol.*;
 import data.provider.FileProvider;
 import domain.Customer;

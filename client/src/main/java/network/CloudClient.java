@@ -15,7 +15,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
@@ -29,12 +28,14 @@ public class CloudClient implements Runnable {
     private AtomicBoolean isRunning;
     private String currentDir;
     private MainView view;
+    private final long block_size;
 
     public CloudClient(InetSocketAddress inetAddress, MainView view, String currentDir) throws IOException {
         channel = SocketChannel.open(inetAddress);
         this.isRunning = new AtomicBoolean();
         this.isRunning.set(true);
         this.currentDir = currentDir;
+        this.block_size = 16384;
         this.view = view;
         new Thread(this).start();
     }
@@ -131,7 +132,6 @@ public class CloudClient implements Runnable {
 
             callInMainThread(view::startProgressView);
 
-            final long block_size = 8192;
             long received = 0;
 
             dp(this, "receiveFile. Ready to receive " + length);
@@ -157,110 +157,25 @@ public class CloudClient implements Runnable {
      * TODO: Отправка
      */
     private void sendFile(Path path, long length) {
-        ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
 
         try (FileInputStream fis = new FileInputStream(path.toString());
              FileChannel fromChannel = fis.getChannel()) {
 
             callInMainThread(view::startProgressView);
 
-            long block_size = 8192;
-            long sourceLength = fromChannel.size();
             long sent = 0;
 
-            dp(this, "sendFile. Source file length is " + sourceLength);
-
-            // TODO: Сообщить длину передаваемого файла
-            lengthByteBuffer.putLong(0, sourceLength);
-            channel.write(lengthByteBuffer);
+            dp(this, "sendFile. Source file length is " + length);
 
             // TODO: Передать файл блоками block_size
             do {
-                long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
+                long count = length - sent > block_size ? block_size : length - sent;
                 sent += fromChannel.transferTo(sent, count, channel);
 
-                final double progress = ((double) sent) / (double) (sourceLength);
+                final double progress = ((double) sent) / (double) (length);
                 callInMainThread(view::updateProgressView, progress);
 
-            } while (sent < sourceLength);
-
-            dp(this, "sendFile. Bytes sent " + sent);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            callInMainThread(view::stopProgressView);
-        }
-    }
-
-    /**
-     * TODO: Выполнить загрузку. Если файл существует, то будет перезаписан.
-     * Файл принимается блоками размером block_size. Для приема последнего блока,
-     * который не равен block_size нужно установить точный размер.
-     */
-    private void receiveFile(String dirTo, String destFileName) {
-        try (FileOutputStream fos = new FileOutputStream(Paths.get(dirTo, destFileName).toString());
-             FileChannel toChannel = fos.getChannel()) {
-
-            callInMainThread(view::startProgressView);
-
-            // TODO: Прочитать длину файла
-            ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
-            channel.read(lengthByteBuffer);
-
-            long sourceLength = lengthByteBuffer.getLong(0);
-            final long block_size = 8192;
-            long received = 0;
-
-            dp(this, "receiveFile. Ready to receive " + sourceLength);
-            do {
-                received += toChannel.transferFrom(channel, received, sourceLength - received >= block_size ? block_size : sourceLength - received);
-
-                final double progress = ((double) received) / (double) (sourceLength);
-                callInMainThread(view::updateProgressView, progress);
-
-            } while (received < sourceLength);
-
-            toChannel.force(false);
-            dp(this, "receiveFile. Bytes received = " + received);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            callInMainThread(view::stopProgressView);
-        }
-    }
-
-    /**
-     * TODO: Отправка
-     */
-    private void sendFile(Path path) {
-        ByteBuffer lengthByteBuffer = ByteBuffer.wrap(new byte[8]);
-
-        try (FileInputStream fis = new FileInputStream(path.toString());
-             FileChannel fromChannel = fis.getChannel()) {
-
-            callInMainThread(view::startProgressView);
-
-            long block_size = 8192;
-            long sourceLength = fromChannel.size();
-            long sent = 0;
-
-            dp(this, "sendFile. Source file length is " + sourceLength);
-
-            // TODO: Сообщить длину передаваемого файла
-            lengthByteBuffer.putLong(0, sourceLength);
-            channel.write(lengthByteBuffer);
-
-            // TODO: Передать файл блоками block_size
-            do {
-                long count = sourceLength - sent > block_size ? block_size : sourceLength - sent;
-                sent += fromChannel.transferTo(sent, count, channel);
-
-                final double progress = ((double) sent) / (double) (sourceLength);
-                callInMainThread(view::updateProgressView, progress);
-
-            } while (sent < sourceLength);
+            } while (sent < length);
 
             dp(this, "sendFile. Bytes sent " + sent);
 
