@@ -12,6 +12,7 @@ import java.util.function.BiConsumer;
 
 import conversation.ClientMessage;
 import conversation.ClientRequest;
+
 import static utils.Debug.*;
 
 public class FileTransfer implements Runnable {
@@ -27,14 +28,16 @@ public class FileTransfer implements Runnable {
         this.channel = channel;
         this.message = message;
         this.filePath = filePath;
-        this.block_size = 8192;
+        this.block_size = 16384;
         this.callBack = callBack;
         this.fileLength = 0;
 
-        if(message.getRequest() == ClientRequest.GET) {
+        if (message.getRequest() == ClientRequest.GET) {
             try {
                 fileLength = Files.size(filePath);
-            } catch (IOException e) {e.printStackTrace();}
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         new Thread(this).start();
@@ -61,7 +64,7 @@ public class FileTransfer implements Runnable {
             case PUT:
                 receiveFile(filePath, fileLength);
                 break;
-                default:
+            default:
         }
 
         // TODO: После операции с файлом известить основной поток
@@ -72,7 +75,7 @@ public class FileTransfer implements Runnable {
      * TODO: Отправить файл
      */
     private void sendFile(Path path, long length) {
-        if(length== 0) {
+        if (length == 0) {
             dp(this, "sendFile. Invalid file length");
             return;
         }
@@ -83,13 +86,15 @@ public class FileTransfer implements Runnable {
 
             dp(this, "sendFile. Source file length is " + length);
             // TODO: Передать файл блоками block_size
-            do{
+            do {
                 long count = length - sent > block_size ? block_size : length - sent;
                 sent += fromChannel.transferTo(sent, count, channel);
             } while (sent < length);
 
             dp(this, "sendFile. Bytes sent " + sent);
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -98,7 +103,7 @@ public class FileTransfer implements Runnable {
      * который не равен block_size нужно установить точный размер.
      */
     private void receiveFile(Path path, long length) {
-        if(length== 0) {
+        if (length == 0) {
             dp(this, "receiveFile. Invalid file length");
             return;
         }
@@ -116,17 +121,8 @@ public class FileTransfer implements Runnable {
             toChannel.force(false);
             dp(this, "receiveFile. Bytes received = " + received);
 
-            /**
-             * TODO: После того как данные переданы из SocketChannel в FileChannel (received == length)
-             * TODO: в сокете ещё остаются 8 байт, из-за которых потом неверно интерпретируется длина
-             * TODO: сообщений протокола и возникает исключение об исчерпании кучи. Здесь я дочитаываю
-             * TODO: осавшиеся байты, чтобы полностью очистить сокет перед тем как он снова
-             * TODO: будет подключен к селектору.
-             */
-            ByteBuffer buf = ByteBuffer.wrap(new byte[(int)block_size]);
-            while(channel.read(buf) > 0) {
-                buf.clear();
-            }
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

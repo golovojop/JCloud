@@ -17,6 +17,7 @@ import controller.CommandController;
 import conversation.ClientMessage;
 import conversation.ClientRequest;
 import conversation.Exchanger;
+import conversation.SessionId;
 import conversation.protocol.*;
 
 import static utils.Debug.*;
