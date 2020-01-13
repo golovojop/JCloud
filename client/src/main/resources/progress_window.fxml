@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="controllers.ProgressView"
+      fx:id="globParent" alignment="CENTER">
+    <HBox.margin >
+        <Insets>
+            <top>10</top>
+            <right>10</right>
+            <bottom>10</bottom>
+            <left>10</left>
+        </Insets>
+    </HBox.margin>
+    <ProgressBar fx:id="progressBar" HBox.hgrow="ALWAYS"/>
+</HBox>
+
+
+
+
